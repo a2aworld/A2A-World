@@ -1,0 +1,252 @@
+# A2A World Platform - Docker Compose Configuration
+# Local development environment with all required services
+
+version: '3.8'
+
+services:
+  # PostgreSQL with PostGIS
+  postgres:
+    image: postgis/postgis:15-3.3
+    container_name: a2a-postgres
+    environment:
+      POSTGRES_DB: a2a_world
+      POSTGRES_USER: a2a_user
+      POSTGRES_PASSWORD: a2a_password
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/schemas:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U a2a_user -d a2a_world"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - a2a-network
+
+  # Redis for caching
+  redis:
+    image: redis:7-alpine
+    container_name: a2a-redis
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - a2a-network
+
+  # NATS for agent messaging
+  nats:
+    image: nats:2.10-alpine
+    container_name: a2a-nats
+    command: 
+      - "-js"
+      - "-m"
+      - "8222"
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8222/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - a2a-network
+
+  # Consul for service discovery
+  consul:
+    image: consul:1.16
+    container_name: a2a-consul
+    command: consul agent -dev -client=0.0.0.0
+    ports:
+      - "8500:8500"
+    healthcheck:
+      test: ["CMD", "consul", "members"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - a2a-network
+
+  # FastAPI Backend
+  api:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.api
+    container_name: a2a-api
+    environment:
+      - DATABASE_URL=postgresql://a2a_user:a2a_password@postgres:5432/a2a_world
+      - REDIS_URL=redis://redis:6379
+      - NATS_URL=nats://nats:4222
+      - CONSUL_HOST=consul
+      - CONSUL_PORT=8500
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+      consul:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - a2a-network
+    volumes:
+      - ./api:/app
+      - ./data:/app/data
+
+  # Next.js Frontend
+  frontend:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.frontend
+    container_name: a2a-frontend
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - a2a-network
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+
+  # KML Parser Agent
+  agent-kml-parser:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.agents
+    container_name: a2a-agent-kml-parser
+    command: python -m agents.parsers.kml_parser
+    environment:
+      - DATABASE_URL=postgresql://a2a_user:a2a_password@postgres:5432/a2a_world
+      - REDIS_URL=redis://redis:6379
+      - NATS_URL=nats://nats:4222
+      - CONSUL_HOST=consul
+      - CONSUL_PORT=8500
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+      consul:
+        condition: service_healthy
+    networks:
+      - a2a-network
+    volumes:
+      - ./agents:/app
+      - ./data:/app/data
+    restart: unless-stopped
+
+  # Pattern Discovery Agent
+  agent-pattern-discovery:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.agents
+    container_name: a2a-agent-pattern-discovery
+    command: python -m agents.discovery.pattern_discovery
+    environment:
+      - DATABASE_URL=postgresql://a2a_user:a2a_password@postgres:5432/a2a_world
+      - REDIS_URL=redis://redis:6379
+      - NATS_URL=nats://nats:4222
+      - CONSUL_HOST=consul
+      - CONSUL_PORT=8500
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+      consul:
+        condition: service_healthy
+    networks:
+      - a2a-network
+    volumes:
+      - ./agents:/app
+      - ./data:/app/data
+    restart: unless-stopped
+
+  # Ollama for local LLM inference
+  ollama:
+    image: ollama/ollama:latest
+    container_name: a2a-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - a2a-network
+    restart: unless-stopped
+
+  # Prometheus for monitoring
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: a2a-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infrastructure/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    networks:
+      - a2a-network
+    restart: unless-stopped
+
+  # Grafana for monitoring dashboard
+  grafana:
+    image: grafana/grafana:latest
+    container_name: a2a-grafana
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./infrastructure/monitoring/grafana:/etc/grafana/provisioning
+    networks:
+      - a2a-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  ollama_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  a2a-network:
+    driver: bridge

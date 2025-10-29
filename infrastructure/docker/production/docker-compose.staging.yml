@@ -1,0 +1,200 @@
+# A2A World Platform - Staging Docker Compose Configuration
+# Simplified staging environment for testing
+
+version: '3.8'
+
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "3"
+    tag: "{{.ImageName}}|{{.Name}}"
+
+networks:
+  a2a-staging:
+    driver: bridge
+
+volumes:
+  postgres_staging_data:
+  redis_staging_data:
+  app_staging_data:
+
+services:
+  # PostgreSQL with PostGIS
+  postgres:
+    image: postgis/postgis:15-3.3
+    container_name: a2a-staging-postgres
+    environment:
+      POSTGRES_DB: a2a_world_staging
+      POSTGRES_USER: a2a_staging_user
+      POSTGRES_PASSWORD: ${POSTGRES_STAGING_PASSWORD:-staging_password_change_me}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_staging_data:/var/lib/postgresql/data
+      - ../../../database/schemas:/docker-entrypoint-initdb.d
+    ports:
+      - "5433:5432"
+    networks:
+      - a2a-staging
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U a2a_staging_user -d a2a_world_staging"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging: *default-logging
+    restart: unless-stopped
+
+  # Redis for caching
+  redis:
+    image: redis:7-alpine
+    container_name: a2a-staging-redis
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_staging_data:/data
+    ports:
+      - "6380:6379"
+    networks:
+      - a2a-staging
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging: *default-logging
+    restart: unless-stopped
+
+  # NATS for agent messaging
+  nats:
+    image: nats:2.10-alpine
+    container_name: a2a-staging-nats
+    command: 
+      - "-js"
+      - "-m"
+      - "8222"
+    ports:
+      - "4223:4222"
+      - "8223:8222"
+    networks:
+      - a2a-staging
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8222/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging: *default-logging
+    restart: unless-stopped
+
+  # FastAPI Backend
+  api:
+    build:
+      context: ../../..
+      dockerfile: infrastructure/docker/production/Dockerfile.api
+    container_name: a2a-staging-api
+    environment:
+      - DATABASE_URL=postgresql://a2a_staging_user:${POSTGRES_STAGING_PASSWORD:-staging_password_change_me}@postgres:5432/a2a_world_staging
+      - REDIS_URL=redis://redis:6379
+      - NATS_URL=nats://nats:4222
+      - SECRET_KEY=${SECRET_KEY:-staging-secret-key-change-in-production}
+      - ENVIRONMENT=staging
+      - LOG_LEVEL=INFO
+      - BACKEND_CORS_ORIGINS=http://localhost:3001,https://localhost:3001
+    volumes:
+      - app_staging_data:/app/data
+    ports:
+      - "8001:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+    networks:
+      - a2a-staging
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging: *default-logging
+    restart: unless-stopped
+
+  # Next.js Frontend
+  frontend:
+    build:
+      context: ../../..
+      dockerfile: infrastructure/docker/production/Dockerfile.frontend
+    container_name: a2a-staging-frontend
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8001
+      - NODE_ENV=production
+    ports:
+      - "3001:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - a2a-staging
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging: *default-logging
+    restart: unless-stopped
+
+  # KML Parser Agent
+  agent-kml-parser:
+    build:
+      context: ../../..
+      dockerfile: infrastructure/docker/production/Dockerfile.agents
+    container_name: a2a-staging-agent-kml
+    command: python -m agents.parsers.kml_parser
+    environment:
+      - DATABASE_URL=postgresql://a2a_staging_user:${POSTGRES_STAGING_PASSWORD:-staging_password_change_me}@postgres:5432/a2a_world_staging
+      - REDIS_URL=redis://redis:6379
+      - NATS_URL=nats://nats:4222
+      - AGENT_TYPE=kml-parser
+      - LOG_LEVEL=INFO
+    volumes:
+      - app_staging_data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+    networks:
+      - a2a-staging
+    logging: *default-logging
+    restart: unless-stopped
+
+  # Pattern Discovery Agent
+  agent-pattern-discovery:
+    build:
+      context: ../../..
+      dockerfile: infrastructure/docker/production/Dockerfile.agents
+    container_name: a2a-staging-agent-pattern
+    command: python -m agents.discovery.pattern_discovery
+    environment:
+      - DATABASE_URL=postgresql://a2a_staging_user:${POSTGRES_STAGING_PASSWORD:-staging_password_change_me}@postgres:5432/a2a_world_staging
+      - REDIS_URL=redis://redis:6379
+      - NATS_URL=nats://nats:4222
+      - AGENT_TYPE=pattern-discovery
+      - LOG_LEVEL=INFO
+    volumes:
+      - app_staging_data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+    networks:
+      - a2a-staging
+    logging: *default-logging
+    restart: unless-stopped

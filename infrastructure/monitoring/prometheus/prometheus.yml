@@ -1,0 +1,161 @@
+# A2A World Platform - Prometheus Configuration
+# Comprehensive monitoring and metrics collection
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'a2a-world-production'
+    environment: 'production'
+
+rule_files:
+  - "rules/*.yml"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    scrape_interval: 30s
+    metrics_path: '/metrics'
+
+  # Node Exporter - System metrics
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets:
+        - 'app-server-1:9100'
+        - 'app-server-2:9100'
+        - 'monitoring-server:9100'
+    scrape_interval: 15s
+    metrics_path: '/metrics'
+
+  # FastAPI Application metrics
+  - job_name: 'a2a-api'
+    static_configs:
+      - targets:
+        - 'api:8000'
+    scrape_interval: 15s
+    metrics_path: '/metrics'
+    scrape_timeout: 10s
+
+  # Frontend Application metrics
+  - job_name: 'a2a-frontend'
+    static_configs:
+      - targets:
+        - 'frontend:3000'
+    scrape_interval: 30s
+    metrics_path: '/api/metrics'
+    scrape_timeout: 10s
+
+  # PostgreSQL metrics
+  - job_name: 'postgres-exporter'
+    static_configs:
+      - targets:
+        - 'postgres-exporter:9187'
+    scrape_interval: 30s
+    metrics_path: '/metrics'
+
+  # Redis metrics
+  - job_name: 'redis-exporter'
+    static_configs:
+      - targets:
+        - 'redis-exporter:9121'
+    scrape_interval: 15s
+    metrics_path: '/metrics'
+
+  # NATS metrics
+  - job_name: 'nats-exporter'
+    static_configs:
+      - targets:
+        - 'nats:8222'
+    scrape_interval: 15s
+    metrics_path: '/metrics'
+
+  # Agent metrics
+  - job_name: 'a2a-agents'
+    static_configs:
+      - targets:
+        - 'agent-kml-parser:9200'
+        - 'agent-pattern-discovery:9201'
+        - 'agent-monitoring:9202'
+    scrape_interval: 30s
+    metrics_path: '/metrics'
+
+  # Blackbox exporter for external monitoring
+  - job_name: 'blackbox-http'
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+        - https://a2aworld.ai
+        - https://api.a2aworld.ai
+        - https://api.a2aworld.ai/health
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox_exporter:9115
+
+  # Docker container metrics
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets:
+        - 'cadvisor:8080'
+    scrape_interval: 15s
+    metrics_path: '/metrics'
+
+  # Load balancer metrics (if using HAProxy or similar)
+  - job_name: 'traefik'
+    static_configs:
+      - targets:
+        - 'traefik:8080'
+    scrape_interval: 30s
+    metrics_path: '/metrics'
+
+  # Custom application metrics endpoints
+  - job_name: 'custom-metrics'
+    static_configs:
+      - targets:
+        - 'api:8000'
+    scrape_interval: 15s
+    metrics_path: '/api/v1/metrics'
+    scrape_timeout: 10s
+
+  # Service discovery for dynamic scaling
+  - job_name: 'consul-services'
+    consul_sd_configs:
+      - server: 'consul:8500'
+        services: ['a2a-api', 'a2a-agents']
+    relabel_configs:
+      - source_labels: [__meta_consul_service]
+        target_label: service
+      - source_labels: [__meta_consul_node]
+        target_label: node
+
+# Remote write configuration for long-term storage
+remote_write:
+  - url: "http://victoria-metrics:8428/api/v1/write"
+    queue_config:
+      max_samples_per_send: 10000
+      batch_send_deadline: 5s
+      max_shards: 200
+
+# Recording rules for efficient querying
+recording_rules:
+  - name: "a2a_world_rules"
+    rules:
+      - record: "a2a:request_rate_5m"
+        expr: "rate(http_requests_total[5m])"
+      - record: "a2a:error_rate_5m"
+        expr: "rate(http_requests_total{status=~'5..'}[5m])"
+      - record: "a2a:response_time_p99_5m"
+        expr: "histogram_quantile(0.99, rate(http_request_duration_seconds_bucket[5m]))"

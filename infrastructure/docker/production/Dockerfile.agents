@@ -1,0 +1,94 @@
+# A2A World Platform - Production Agents Dockerfile
+# Multi-stage build for optimized agent deployment
+
+# Build stage
+FROM python:3.11-slim as builder
+
+# Set build environment variables
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    gcc \
+    g++ \
+    postgresql-client \
+    gdal-bin \
+    libgdal-dev \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set GDAL environment
+ENV GDAL_CONFIG=/usr/bin/gdal-config
+
+# Create virtual environment
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Copy and install requirements
+COPY requirements.txt .
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
+
+# Production stage
+FROM python:3.11-slim as production
+
+# Set production environment variables
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app \
+    PATH="/opt/venv/bin:$PATH" \
+    ENVIRONMENT=production
+
+# Install runtime dependencies only
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-client \
+    gdal-bin \
+    libgdal32 \
+    libpq5 \
+    curl \
+    procps \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# Set GDAL environment
+ENV GDAL_CONFIG=/usr/bin/gdal-config
+
+# Copy virtual environment from builder stage
+COPY --from=builder /opt/venv /opt/venv
+
+# Create non-root user with specific UID/GID for consistency
+RUN groupadd -r -g 1000 agentgroup && \
+    useradd -r -g agentgroup -u 1000 -d /app -s /sbin/nologin -c "Agent user" agentuser
+
+# Set working directory
+WORKDIR /app
+
+# Copy application code with proper ownership
+COPY --chown=agentuser:agentgroup agents/ .
+
+# Create necessary directories
+RUN mkdir -p /app/data /app/logs /app/temp && \
+    chown -R agentuser:agentgroup /app
+
+# Switch to non-root user
+USER agentuser
+
+# Health check for agent processes
+HEALTHCHECK --interval=60s --timeout=30s --start-period=10s --retries=3 \
+    CMD python -c "import psutil; import sys; sys.exit(0 if any('python' in p.name() for p in psutil.process_iter()) else 1)" || exit 1
+
+# Use proper signal handling for graceful shutdowns
+STOPSIGNAL SIGTERM
+
+# Default command (can be overridden for specific agents)
+CMD ["python", "-m", "agents.core.base_agent"]
+
+# Multi-agent support - can be overridden via docker-compose
+LABEL agent.type="base" \
+      agent.version="1.0.0" \
+      agent.capabilities="base,messaging,health" \
+      maintainer="A2A World Platform"

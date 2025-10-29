@@ -1,0 +1,81 @@
+# A2A World Platform - Grafana Datasource Configuration
+# Prometheus datasource provisioning
+
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false
+    jsonData:
+      httpMethod: POST
+      keepCookies: []
+      timeInterval: 15s
+      manageAlerts: true
+      alertmanagerUrl: http://alertmanager:9093
+      prometheusType: Prometheus
+      prometheusVersion: 2.40.0
+      cacheLevel: 'High'
+      incrementalQuerying: true
+      incrementalQueryOverlapWindow: 10m
+      queryTimeout: 60s
+      defaultRegion: us-east-1
+    secureJsonFields: {}
+    version: 1
+    readonly: false
+
+  - name: Loki
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    isDefault: false
+    editable: false
+    jsonData:
+      httpMethod: GET
+      keepCookies: []
+      maxLines: 1000
+    version: 1
+    readonly: false
+
+  - name: Victoria Metrics
+    type: prometheus
+    access: proxy
+    url: http://victoria-metrics:8428
+    isDefault: false
+    editable: false
+    jsonData:
+      httpMethod: POST
+      keepCookies: []
+      timeInterval: 15s
+      prometheusType: Prometheus
+      prometheusVersion: 2.40.0
+      cacheLevel: 'High'
+      incrementalQuerying: true
+      incrementalQueryOverlapWindow: 10m
+      queryTimeout: 60s
+    version: 1
+    readonly: false
+
+  - name: PostgreSQL
+    type: postgres
+    access: proxy
+    url: postgres:5432
+    database: a2a_world
+    user: ${POSTGRES_USER}
+    isDefault: false
+    editable: false
+    jsonData:
+      sslmode: require
+      maxOpenConns: 100
+      maxIdleConns: 100
+      maxIdleConnsAuto: true
+      connMaxLifetime: 14400
+      postgresVersion: 1500
+      timescaledb: false
+    secureJsonData:
+      password: ${POSTGRES_PASSWORD}
+    version: 1
+    readonly: false

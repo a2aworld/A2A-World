@@ -1,0 +1,102 @@
+# A2A World Platform - Production API Dockerfile
+# Multi-stage build for optimized production deployment
+
+# Build stage
+FROM python:3.11-slim as builder
+
+# Set build environment variables
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    gcc \
+    g++ \
+    postgresql-client \
+    gdal-bin \
+    libgdal-dev \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set GDAL environment
+ENV GDAL_CONFIG=/usr/bin/gdal-config
+
+# Create virtual environment
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Copy and install requirements
+COPY requirements.txt .
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
+
+# Production stage
+FROM python:3.11-slim as production
+
+# Set production environment variables
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app \
+    PATH="/opt/venv/bin:$PATH" \
+    ENVIRONMENT=production
+
+# Install runtime dependencies only
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-client \
+    gdal-bin \
+    libgdal32 \
+    libpq5 \
+    curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# Set GDAL environment
+ENV GDAL_CONFIG=/usr/bin/gdal-config
+
+# Copy virtual environment from builder stage
+COPY --from=builder /opt/venv /opt/venv
+
+# Create non-root user with specific UID/GID for consistency
+RUN groupadd -r -g 1000 appgroup && \
+    useradd -r -g appgroup -u 1000 -d /app -s /sbin/nologin -c "App user" appuser
+
+# Set working directory
+WORKDIR /app
+
+# Copy application code with proper ownership
+COPY --chown=appuser:appgroup api/ .
+
+# Create necessary directories
+RUN mkdir -p /app/data /app/logs && \
+    chown -R appuser:appgroup /app
+
+# Switch to non-root user
+USER appuser
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Expose port
+EXPOSE 8000
+
+# Use proper signal handling for graceful shutdowns
+STOPSIGNAL SIGTERM
+
+# Run the application with Gunicorn for production
+CMD ["gunicorn", "app.main:app", \
+     "--bind", "0.0.0.0:8000", \
+     "--worker-class", "uvicorn.workers.UvicornWorker", \
+     "--workers", "4", \
+     "--worker-connections", "1000", \
+     "--max-requests", "10000", \
+     "--max-requests-jitter", "1000", \
+     "--preload", \
+     "--timeout", "30", \
+     "--keep-alive", "2", \
+     "--log-level", "info", \
+     "--access-logfile", "-", \
+     "--error-logfile", "-"]

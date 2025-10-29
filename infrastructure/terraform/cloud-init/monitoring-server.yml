@@ -1,0 +1,221 @@
+#cloud-config
+# A2A World Platform - Monitoring Server Cloud-Init
+
+package_update: true
+package_upgrade: true
+
+packages:
+  - curl
+  - wget
+  - git
+  - htop
+  - nano
+  - ufw
+  - fail2ban
+  - logrotate
+  - docker.io
+  - docker-compose
+
+# Configure Docker
+groups:
+  - docker
+
+users:
+  - name: monitoring
+    groups: docker, sudo
+    shell: /bin/bash
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    ssh_authorized_keys:
+      - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQC... # Add your public key
+
+# Install and configure monitoring stack
+runcmd:
+  # Update system
+  - apt-get update && apt-get upgrade -y
+  
+  # Configure Docker
+  - systemctl enable docker
+  - systemctl start docker
+  - usermod -aG docker monitoring
+  
+  # Install Docker Compose v2
+  - curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+  - chmod +x /usr/local/bin/docker-compose
+  - ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
+  
+  # Configure UFW firewall
+  - ufw --force enable
+  - ufw allow ssh
+  - ufw allow 9090/tcp  # Prometheus
+  - ufw allow 3000/tcp  # Grafana
+  - ufw allow 9100/tcp  # Node Exporter
+  - ufw allow 9093/tcp  # Alertmanager
+  - ufw allow from 10.0.0.0/16
+  
+  # Configure fail2ban
+  - systemctl enable fail2ban
+  - systemctl start fail2ban
+  
+  # Create monitoring directories
+  - mkdir -p /opt/monitoring/{prometheus,grafana,alertmanager}/{config,data}
+  - mkdir -p /var/log/monitoring
+  - chown -R monitoring:monitoring /opt/monitoring
+  - chown -R monitoring:monitoring /var/log/monitoring
+  
+  # Install Node Exporter
+  - wget -O /tmp/node_exporter.tar.gz https://github.com/prometheus/node_exporter/releases/latest/download/node_exporter-1.6.1.linux-amd64.tar.gz
+  - tar xzf /tmp/node_exporter.tar.gz -C /tmp/
+  - mv /tmp/node_exporter-*/node_exporter /usr/local/bin/
+  - useradd --no-create-home --shell /bin/false node_exporter
+  - chown node_exporter:node_exporter /usr/local/bin/node_exporter
+  
+  # Create Node Exporter systemd service
+  - |
+    cat > /etc/systemd/system/node_exporter.service << 'EOF'
+    [Unit]
+    Description=Node Exporter
+    Wants=network-online.target
+    After=network-online.target
+    
+    [Service]
+    User=node_exporter
+    Group=node_exporter
+    Type=simple
+    ExecStart=/usr/local/bin/node_exporter
+    
+    [Install]
+    WantedBy=multi-user.target
+    EOF
+  
+  - systemctl daemon-reload
+  - systemctl enable node_exporter
+  - systemctl start node_exporter
+
+write_files:
+  - path: /opt/monitoring/docker-compose.yml
+    content: |
+      version: '3.8'
+      
+      networks:
+        monitoring:
+          driver: bridge
+      
+      volumes:
+        prometheus_data:
+        grafana_data:
+        alertmanager_data:
+      
+      services:
+        prometheus:
+          image: prom/prometheus:latest
+          container_name: prometheus
+          restart: unless-stopped
+          ports:
+            - "9090:9090"
+          command:
+            - '--config.file=/etc/prometheus/prometheus.yml'
+            - '--storage.tsdb.path=/prometheus'
+            - '--web.console.libraries=/etc/prometheus/console_libraries'
+            - '--web.console.templates=/etc/prometheus/consoles'
+            - '--storage.tsdb.retention.time=30d'
+            - '--web.enable-lifecycle'
+            - '--web.enable-admin-api'
+          volumes:
+            - ./prometheus/config:/etc/prometheus
+            - prometheus_data:/prometheus
+          networks:
+            - monitoring
+        
+        grafana:
+          image: grafana/grafana:latest
+          container_name: grafana
+          restart: unless-stopped
+          ports:
+            - "3000:3000"
+          environment:
+            - GF_SECURITY_ADMIN_PASSWORD=A2AWorld2024!
+            - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource,grafana-piechart-panel
+          volumes:
+            - grafana_data:/var/lib/grafana
+            - ./grafana/provisioning:/etc/grafana/provisioning
+          networks:
+            - monitoring
+        
+        alertmanager:
+          image: prom/alertmanager:latest
+          container_name: alertmanager
+          restart: unless-stopped
+          ports:
+            - "9093:9093"
+          volumes:
+            - ./alertmanager/config:/etc/alertmanager
+            - alertmanager_data:/alertmanager
+          command:
+            - '--config.file=/etc/alertmanager/alertmanager.yml'
+            - '--storage.path=/alertmanager'
+            - '--web.external-url=http://localhost:9093'
+          networks:
+            - monitoring
+        
+        blackbox_exporter:
+          image: prom/blackbox-exporter:latest
+          container_name: blackbox_exporter
+          restart: unless-stopped
+          ports:
+            - "9115:9115"
+          volumes:
+            - ./blackbox:/etc/blackbox_exporter
+          networks:
+            - monitoring
+        
+        cadvisor:
+          image: gcr.io/cadvisor/cadvisor:latest
+          container_name: cadvisor
+          restart: unless-stopped
+          ports:
+            - "8080:8080"
+          volumes:
+            - /:/rootfs:ro
+            - /var/run:/var/run:ro
+            - /sys:/sys:ro
+            - /var/lib/docker/:/var/lib/docker:ro
+            - /dev/disk/:/dev/disk:ro
+          privileged: true
+          devices:
+            - /dev/kmsg
+          networks:
+            - monitoring
+    owner: monitoring:monitoring
+    permissions: '0644'
+  
+  - path: /etc/fail2ban/jail.d/monitoring.conf
+    content: |
+      [DEFAULT]
+      bantime = 3600
+      findtime = 600
+      maxretry = 5
+      
+      [sshd]
+      enabled = true
+      port = ssh
+      filter = sshd
+      logpath = /var/log/auth.log
+      maxretry = 3
+    owner: root:root
+    permissions: '0644'
+  
+  - path: /etc/logrotate.d/monitoring
+    content: |
+      /var/log/monitoring/*.log {
+          daily
+          missingok
+          rotate 30
+          compress
+          delaycompress
+          notifempty
+          copytruncate
+      }
+    owner: root:root
+    permissions: '0644'
+
+final_message: "A2A World monitoring server setup completed!"

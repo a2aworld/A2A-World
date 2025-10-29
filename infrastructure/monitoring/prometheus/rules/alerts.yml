@@ -1,0 +1,221 @@
+# A2A World Platform - Prometheus Alert Rules
+# Critical and warning alerts for system monitoring
+
+groups:
+  - name: a2a_world_critical
+    rules:
+      # High-level service availability
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: infrastructure
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+          description: "Service {{ $labels.job }} on {{ $labels.instance }} has been down for more than 1 minute."
+
+      - alert: HighErrorRate
+        expr: a2a:error_rate_5m > 0.1
+        for: 5m
+        labels:
+          severity: critical
+          team: backend
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value | humanizePercentage }} for the last 5 minutes."
+
+      - alert: DatabaseDown
+        expr: up{job="postgres-exporter"} == 0
+        for: 30s
+        labels:
+          severity: critical
+          team: database
+        annotations:
+          summary: "PostgreSQL database is down"
+          description: "PostgreSQL database has been unreachable for more than 30 seconds."
+
+      - alert: RedisDown
+        expr: up{job="redis-exporter"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: infrastructure
+        annotations:
+          summary: "Redis cache is down"
+          description: "Redis cache has been unreachable for more than 1 minute."
+
+  - name: a2a_world_warning
+    rules:
+      # Performance warnings
+      - alert: HighResponseTime
+        expr: a2a:response_time_p99_5m > 2
+        for: 10m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "High response time detected"
+          description: "99th percentile response time is {{ $value }}s for the last 5 minutes."
+
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 10m
+        labels:
+          severity: warning
+          team: infrastructure
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance }}"
+          description: "CPU usage is {{ $value | humanize }}% on {{ $labels.instance }}."
+
+      - alert: HighMemoryUsage
+        expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          team: infrastructure
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}"
+          description: "Memory usage is {{ $value | humanize }}% on {{ $labels.instance }}."
+
+      - alert: DiskSpaceLow
+        expr: (node_filesystem_avail_bytes{fstype!="tmpfs"} / node_filesystem_size_bytes{fstype!="tmpfs"}) * 100 < 15
+        for: 5m
+        labels:
+          severity: warning
+          team: infrastructure
+        annotations:
+          summary: "Low disk space on {{ $labels.instance }}"
+          description: "Disk space is {{ $value | humanize }}% available on {{ $labels.instance }}:{{ $labels.mountpoint }}."
+
+  - name: a2a_world_database
+    rules:
+      # Database-specific alerts
+      - alert: DatabaseConnectionsHigh
+        expr: pg_stat_database_numbackends / pg_settings_max_connections * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+          team: database
+        annotations:
+          summary: "High database connection usage"
+          description: "Database connection usage is {{ $value | humanize }}%."
+
+      - alert: DatabaseReplicationLag
+        expr: pg_replication_lag_bytes > 1073741824
+        for: 2m
+        labels:
+          severity: critical
+          team: database
+        annotations:
+          summary: "Database replication lag is high"
+          description: "Replication lag is {{ $value | humanizeBytes }}."
+
+      - alert: DatabaseSlowQueries
+        expr: rate(pg_stat_database_tup_fetched[5m]) / rate(pg_stat_database_tup_returned[5m]) < 0.1
+        for: 10m
+        labels:
+          severity: warning
+          team: database
+        annotations:
+          summary: "Database queries are running slowly"
+          description: "Query efficiency ratio is {{ $value | humanizePercentage }}."
+
+  - name: a2a_world_agents
+    rules:
+      # Agent system alerts
+      - alert: AgentDown
+        expr: up{job="a2a-agents"} == 0
+        for: 2m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "Agent {{ $labels.instance }} is down"
+          description: "Agent {{ $labels.instance }} has been down for more than 2 minutes."
+
+      - alert: AgentHighMemoryUsage
+        expr: container_memory_usage_bytes{name=~".*agent.*"} / container_spec_memory_limit_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "Agent {{ $labels.name }} using high memory"
+          description: "Agent {{ $labels.name }} is using {{ $value | humanizePercentage }} of allocated memory."
+
+      - alert: NATSConnectivityIssue
+        expr: up{job="nats-exporter"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: infrastructure
+        annotations:
+          summary: "NATS messaging system is down"
+          description: "NATS has been unreachable for more than 1 minute, affecting agent communication."
+
+  - name: a2a_world_security
+    rules:
+      # Security-related alerts
+      - alert: TooManyFailedLogins
+        expr: increase(failed_login_attempts_total[5m]) > 50
+        for: 0m
+        labels:
+          severity: warning
+          team: security
+        annotations:
+          summary: "High number of failed login attempts"
+          description: "{{ $value }} failed login attempts in the last 5 minutes."
+
+      - alert: SSLCertificateExpiring
+        expr: probe_ssl_earliest_cert_expiry - time() < 7 * 24 * 3600
+        for: 0m
+        labels:
+          severity: warning
+          team: infrastructure
+        annotations:
+          summary: "SSL certificate expiring soon"
+          description: "SSL certificate for {{ $labels.instance }} expires in {{ $value | humanizeDuration }}."
+
+      - alert: UnauthorizedAPIAccess
+        expr: increase(http_requests_total{status="401"}[10m]) > 100
+        for: 0m
+        labels:
+          severity: warning
+          team: security
+        annotations:
+          summary: "High number of unauthorized API requests"
+          description: "{{ $value }} unauthorized requests in the last 10 minutes."
+
+  - name: a2a_world_business
+    rules:
+      # Business logic alerts
+      - alert: LowDataProcessingRate
+        expr: rate(data_processed_total[1h]) < 100
+        for: 30m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "Data processing rate is low"
+          description: "Only {{ $value }} items processed per second over the last hour."
+
+      - alert: HighPatternDiscoveryLatency
+        expr: pattern_discovery_duration_seconds > 300
+        for: 10m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "Pattern discovery is taking too long"
+          description: "Pattern discovery latency is {{ $value }}s."
+
+      - alert: UserEngagementDrop
+        expr: rate(user_interactions_total[1h]) < rate(user_interactions_total[6h] offset 1d)
+        for: 1h
+        labels:
+          severity: info
+          team: product
+        annotations:
+          summary: "User engagement has dropped"
+          description: "Current user interaction rate is below yesterday's average."

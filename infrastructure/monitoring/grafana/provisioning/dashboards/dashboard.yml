@@ -1,0 +1,49 @@
+# A2A World Platform - Grafana Dashboard Provisioning
+# Automated dashboard configuration
+
+apiVersion: 1
+
+providers:
+  - name: 'A2A World Dashboards'
+    orgId: 1
+    folder: 'A2A World'
+    folderUid: 'a2a-world'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards
+
+  - name: 'Infrastructure Dashboards'
+    orgId: 1
+    folder: 'Infrastructure'
+    folderUid: 'infrastructure'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards/infrastructure
+
+  - name: 'Application Dashboards'
+    orgId: 1
+    folder: 'Applications'
+    folderUid: 'applications'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards/applications
+
+  - name: 'Business Dashboards'
+    orgId: 1
+    folder: 'Business Metrics'
+    folderUid: 'business'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards/business

@@ -1,0 +1,259 @@
+# A2A World Platform - Alertmanager Configuration
+# Alert routing, grouping, and notification management
+
+global:
+  # SMTP configuration for email alerts
+  smtp_smarthost: '${SMTP_HOST}:${SMTP_PORT}'
+  smtp_from: 'alerts@a2aworld.ai'
+  smtp_auth_username: '${SMTP_USER}'
+  smtp_auth_password: '${SMTP_PASSWORD}'
+  smtp_require_tls: true
+
+# Routing configuration
+route:
+  group_by: ['alertname', 'cluster', 'service']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 1h
+  receiver: 'web.hook'
+  routes:
+    # Critical alerts - immediate notification
+    - match:
+        severity: critical
+      receiver: 'critical-alerts'
+      group_wait: 0s
+      group_interval: 5m
+      repeat_interval: 15m
+      continue: true
+
+    # Infrastructure team alerts
+    - match:
+        team: infrastructure
+      receiver: 'infrastructure-team'
+      group_wait: 5s
+      group_interval: 5m
+      repeat_interval: 30m
+
+    # Database team alerts
+    - match:
+        team: database
+      receiver: 'database-team'
+      group_wait: 10s
+      group_interval: 10m
+      repeat_interval: 1h
+
+    # Security team alerts
+    - match:
+        team: security
+      receiver: 'security-team'
+      group_wait: 0s
+      group_interval: 1m
+      repeat_interval: 5m
+      continue: true
+
+    # Backend team alerts
+    - match:
+        team: backend
+      receiver: 'backend-team'
+      group_wait: 10s
+      group_interval: 10m
+      repeat_interval: 1h
+
+    # Business/Product team alerts
+    - match:
+        team: product
+      receiver: 'product-team'
+      group_wait: 30s
+      group_interval: 1h
+      repeat_interval: 6h
+
+# Inhibition rules - suppress certain alerts when others are active
+inhibit_rules:
+  # Suppress warning alerts when critical alerts are active for the same service
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'instance']
+
+  # Suppress individual service alerts when the whole node is down
+  - source_match:
+      alertname: 'ServiceDown'
+    target_match_re:
+      alertname: '(HighCPUUsage|HighMemoryUsage|DiskSpaceLow)'
+    equal: ['instance']
+
+# Notification receivers
+receivers:
+  # Default webhook receiver
+  - name: 'web.hook'
+    webhook_configs:
+      - url: 'http://webhook-logger:8080/webhook'
+        send_resolved: true
+
+  # Critical alerts - multiple channels
+  - name: 'critical-alerts'
+    email_configs:
+      - to: 'oncall@a2aworld.ai'
+        subject: '[CRITICAL] A2A World Alert: {{ .GroupLabels.alertname }}'
+        body: |
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Details:
+          {{ range .Labels.SortedPairs }} - {{ .Name }} = {{ .Value }}
+          {{ end }}
+          {{ end }}
+        headers:
+          Priority: 'urgent'
+    
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_CRITICAL}'
+        channel: '#critical-alerts'
+        title: 'CRITICAL: {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          *Severity:* {{ .Labels.severity }}
+          *Team:* {{ .Labels.team }}
+          {{ end }}
+        send_resolved: true
+        color: 'danger'
+
+    pagerduty_configs:
+      - routing_key: '${PAGERDUTY_ROUTING_KEY}'
+        description: '{{ .GroupLabels.alertname }}: {{ .CommonAnnotations.summary }}'
+        severity: 'critical'
+
+  # Infrastructure team
+  - name: 'infrastructure-team'
+    email_configs:
+      - to: 'infrastructure@a2aworld.ai'
+        subject: '[INFRA] A2A World Alert: {{ .GroupLabels.alertname }}'
+        body: |
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Severity: {{ .Labels.severity }}
+          Instance: {{ .Labels.instance }}
+          {{ end }}
+
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_INFRA}'
+        channel: '#infrastructure'
+        title: 'Infrastructure Alert: {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          *Instance:* {{ .Labels.instance }}
+          {{ end }}
+        send_resolved: true
+
+  # Database team
+  - name: 'database-team'
+    email_configs:
+      - to: 'database@a2aworld.ai'
+        subject: '[DB] A2A World Alert: {{ .GroupLabels.alertname }}'
+        body: |
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Database: {{ .Labels.datname }}
+          {{ end }}
+
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_DB}'
+        channel: '#database'
+        title: 'Database Alert: {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          {{ end }}
+        send_resolved: true
+        color: 'warning'
+
+  # Security team
+  - name: 'security-team'
+    email_configs:
+      - to: 'security@a2aworld.ai'
+        subject: '[SECURITY] A2A World Alert: {{ .GroupLabels.alertname }}'
+        body: |
+          {{ range .Alerts }}
+          SECURITY ALERT: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          
+          Immediate action may be required.
+          {{ end }}
+        headers:
+          Priority: 'urgent'
+          X-Security-Alert: 'true'
+
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_SECURITY}'
+        channel: '#security-alerts'
+        title: '🚨 SECURITY ALERT: {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          *Requires immediate attention*
+          {{ end }}
+        send_resolved: true
+        color: 'danger'
+
+  # Backend team
+  - name: 'backend-team'
+    email_configs:
+      - to: 'backend@a2aworld.ai'
+        subject: '[BACKEND] A2A World Alert: {{ .GroupLabels.alertname }}'
+        body: |
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Service: {{ .Labels.job }}
+          {{ end }}
+
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_BACKEND}'
+        channel: '#backend'
+        title: 'Backend Alert: {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          *Service:* {{ .Labels.job }}
+          {{ end }}
+        send_resolved: true
+
+  # Product team
+  - name: 'product-team'
+    email_configs:
+      - to: 'product@a2aworld.ai'
+        subject: '[PRODUCT] A2A World Alert: {{ .GroupLabels.alertname }}'
+        body: |
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          
+          This may impact user experience.
+          {{ end }}
+
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_PRODUCT}'
+        channel: '#product'
+        title: 'Product Alert: {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          *Impact:* User experience may be affected
+          {{ end }}
+        send_resolved: true
+        color: 'warning'
+
+# Alert notification templates
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'

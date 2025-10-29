@@ -1,0 +1,283 @@
+# A2A World Platform - Security Scanning Workflow
+# Comprehensive security analysis and vulnerability detection
+
+name: Security Scan
+
+on:
+  schedule:
+    - cron: '0 2 * * 1' # Weekly on Mondays at 2 AM
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  # Container Security Scanning
+  container-security:
+    name: Container Security Scan
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        component: [api, frontend, agents]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: |
+          docker build -f infrastructure/docker/production/Dockerfile.${{ matrix.component }} -t a2a-${{ matrix.component }}:latest .
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'a2a-${{ matrix.component }}:latest'
+          format: 'sarif'
+          output: 'trivy-${{ matrix.component }}.sarif'
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: 'trivy-${{ matrix.component }}.sarif'
+
+  # Dependency Vulnerability Scanning
+  dependency-security:
+    name: Dependency Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install safety bandit semgrep
+
+      - name: Python dependency security scan
+        run: |
+          safety check --json --output python-security.json
+          bandit -r api/ agents/ -f json -o bandit-security.json
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install Node.js dependencies
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Node.js dependency audit
+        run: |
+          cd frontend
+          npm audit --audit-level moderate --json > ../node-security.json
+
+      - name: Semgrep security scan
+        env:
+          SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
+        run: |
+          semgrep --config=auto --json --output=semgrep-security.json .
+
+      - name: Upload security artifacts
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: security-reports
+          path: |
+            python-security.json
+            bandit-security.json
+            node-security.json
+            semgrep-security.json
+
+  # CodeQL Analysis
+  codeql-analysis:
+    name: CodeQL Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        language: ['python', 'javascript']
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v2
+        with:
+          languages: ${{ matrix.language }}
+          queries: security-extended,security-and-quality
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v2
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v2
+        with:
+          category: "/language:${{ matrix.language }}"
+
+  # Infrastructure Security Scan
+  infrastructure-security:
+    name: Infrastructure Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Checkov
+        id: checkov
+        uses: bridgecrewio/checkov-action@master
+        with:
+          directory: infrastructure/terraform
+          framework: terraform
+          output_format: sarif
+          output_file_path: checkov-terraform.sarif
+
+      - name: Upload Checkov scan results
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: checkov-terraform.sarif
+
+      - name: Docker Compose security scan
+        run: |
+          pip install docker-compose-security-scanner
+          dc-security-scan infrastructure/docker/production/docker-compose.production.yml
+
+  # Secret Scanning
+  secret-scan:
+    name: Secret Scanning
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: TruffleHog OSS
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: main
+          head: HEAD
+          extra_args: --debug --only-verified
+
+  # License Compliance
+  license-check:
+    name: License Compliance
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install license checker
+        run: |
+          pip install pip-licenses licensecheck
+
+      - name: Check Python licenses
+        run: |
+          pip install -r requirements.txt
+          pip-licenses --format=json --output-file=python-licenses.json
+          licensecheck --zero
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Check Node.js licenses
+        run: |
+          cd frontend
+          npm ci
+          npx license-checker --json --out ../node-licenses.json
+
+      - name: Upload license reports
+        uses: actions/upload-artifact@v3
+        with:
+          name: license-reports
+          path: |
+            python-licenses.json
+            node-licenses.json
+
+  # Security Summary
+  security-summary:
+    name: Security Summary
+    runs-on: ubuntu-latest
+    needs: [container-security, dependency-security, codeql-analysis, infrastructure-security, secret-scan, license-check]
+    if: always()
+    steps:
+      - name: Download security artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: security-reports
+
+      - name: Generate security summary
+        run: |
+          echo "# Security Scan Summary" > security-summary.md
+          echo "## Scan Results" >> security-summary.md
+          echo "- Container Security: ${{ needs.container-security.result }}" >> security-summary.md
+          echo "- Dependency Security: ${{ needs.dependency-security.result }}" >> security-summary.md
+          echo "- CodeQL Analysis: ${{ needs.codeql-analysis.result }}" >> security-summary.md
+          echo "- Infrastructure Security: ${{ needs.infrastructure-security.result }}" >> security-summary.md
+          echo "- Secret Scanning: ${{ needs.secret-scan.result }}" >> security-summary.md
+          echo "- License Compliance: ${{ needs.license-check.result }}" >> security-summary.md
+          
+          if ls security-reports/*/*.json 1> /dev/null 2>&1; then
+            echo "## Detailed Reports Available" >> security-summary.md
+            echo "Security reports have been generated and uploaded as artifacts." >> security-summary.md
+          fi
+
+      - name: Comment PR with security summary
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const summary = fs.readFileSync('security-summary.md', 'utf8');
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: summary
+            });
+
+      - name: Notify security team
+        if: failure() && github.ref == 'refs/heads/main'
+        uses: 8398a7/action-slack@v3
+        with:
+          status: failure
+          channel: '#security-alerts'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+          fields: repo,message,commit,author,workflow
+          custom_payload: |
+            {
+              attachments: [{
+                color: 'danger',
+                title: 'Security Scan Failed',
+                text: 'Critical security issues detected in main branch. Please review immediately.',
+                fields: [{
+                  title: 'Repository',
+                  value: '${{ github.repository }}',
+                  short: true
+                }, {
+                  title: 'Commit',
+                  value: '${{ github.sha }}',
+                  short: true
+                }]
+              }]
+            }

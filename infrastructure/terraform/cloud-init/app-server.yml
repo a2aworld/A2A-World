@@ -1,0 +1,186 @@
+#cloud-config
+# A2A World Platform - Application Server Cloud-Init
+
+package_update: true
+package_upgrade: true
+
+packages:
+  - curl
+  - wget
+  - git
+  - htop
+  - nano
+  - ufw
+  - fail2ban
+  - logrotate
+  - docker.io
+  - docker-compose
+  - nginx
+  - certbot
+  - python3-certbot-nginx
+
+# Configure Docker
+groups:
+  - docker
+
+users:
+  - name: deploy
+    groups: docker, sudo
+    shell: /bin/bash
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    ssh_authorized_keys:
+      - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQC... # Add your public key
+
+# Install Docker Compose v2
+runcmd:
+  # Update system
+  - apt-get update && apt-get upgrade -y
+  
+  # Configure Docker
+  - systemctl enable docker
+  - systemctl start docker
+  - usermod -aG docker deploy
+  
+  # Install Docker Compose v2
+  - curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+  - chmod +x /usr/local/bin/docker-compose
+  - ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
+  
+  # Configure UFW firewall
+  - ufw --force enable
+  - ufw allow ssh
+  - ufw allow http
+  - ufw allow https
+  - ufw allow from 10.0.0.0/16
+  
+  # Configure fail2ban
+  - systemctl enable fail2ban
+  - systemctl start fail2ban
+  
+  # Install Node Exporter for monitoring
+  - wget -O /tmp/node_exporter.tar.gz https://github.com/prometheus/node_exporter/releases/latest/download/node_exporter-1.6.1.linux-amd64.tar.gz
+  - tar xzf /tmp/node_exporter.tar.gz -C /tmp/
+  - mv /tmp/node_exporter-*/node_exporter /usr/local/bin/
+  - useradd --no-create-home --shell /bin/false node_exporter
+  - chown node_exporter:node_exporter /usr/local/bin/node_exporter
+  
+  # Create systemd service for Node Exporter
+  - |
+    cat > /etc/systemd/system/node_exporter.service << 'EOF'
+    [Unit]
+    Description=Node Exporter
+    Wants=network-online.target
+    After=network-online.target
+    
+    [Service]
+    User=node_exporter
+    Group=node_exporter
+    Type=simple
+    ExecStart=/usr/local/bin/node_exporter
+    
+    [Install]
+    WantedBy=multi-user.target
+    EOF
+  
+  - systemctl daemon-reload
+  - systemctl enable node_exporter
+  - systemctl start node_exporter
+  
+  # Configure nginx for reverse proxy
+  - |
+    cat > /etc/nginx/sites-available/a2a-world << 'EOF'
+    upstream app_backend {
+        server 127.0.0.1:8000;
+    }
+    
+    upstream frontend {
+        server 127.0.0.1:3000;
+    }
+    
+    # API Server
+    server {
+        listen 80;
+        server_name api.${domain_name};
+        
+        location / {
+            proxy_pass http://app_backend;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+        
+        location /health {
+            proxy_pass http://app_backend/health;
+            access_log off;
+        }
+    }
+    
+    # Frontend Server
+    server {
+        listen 80 default_server;
+        server_name ${domain_name} www.${domain_name};
+        
+        location / {
+            proxy_pass http://frontend;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+        
+        # Static files
+        location /_next/static/ {
+            proxy_pass http://frontend;
+            expires 1y;
+            add_header Cache-Control "public, immutable";
+        }
+    }
+    EOF
+  
+  - ln -s /etc/nginx/sites-available/a2a-world /etc/nginx/sites-enabled/
+  - rm -f /etc/nginx/sites-enabled/default
+  - nginx -t
+  - systemctl enable nginx
+  - systemctl reload nginx
+  
+  # Create app directory
+  - mkdir -p /opt/a2a-world
+  - chown deploy:deploy /opt/a2a-world
+  
+  # Create log directories
+  - mkdir -p /var/log/a2a-world
+  - chown deploy:deploy /var/log/a2a-world
+
+write_files:
+  - path: /etc/logrotate.d/a2a-world
+    content: |
+      /var/log/a2a-world/*.log {
+          daily
+          missingok
+          rotate 14
+          compress
+          delaycompress
+          notifempty
+          copytruncate
+      }
+    owner: root:root
+    permissions: '0644'
+    
+  - path: /etc/fail2ban/jail.d/a2a-world.conf
+    content: |
+      [DEFAULT]
+      bantime = 3600
+      findtime = 600
+      maxretry = 5
+      
+      [sshd]
+      enabled = true
+      port = ssh
+      filter = sshd
+      logpath = /var/log/auth.log
+      maxretry = 3
+    owner: root:root
+    permissions: '0644'
+
+final_message: "A2A World application server setup completed!"

@@ -1,0 +1,361 @@
+# A2A World Platform - Production Docker Compose Configuration
+# Optimized for production deployment with high availability
+
+version: '3.8'
+
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "3"
+    tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
+
+x-deploy: &default-deploy
+  restart_policy:
+    condition: on-failure
+    delay: 5s
+    max_attempts: 3
+    window: 120s
+  update_config:
+    parallelism: 1
+    delay: 10s
+    failure_action: rollback
+    monitor: 60s
+  rollback_config:
+    parallelism: 1
+    delay: 0s
+    failure_action: pause
+    monitor: 60s
+
+networks:
+  a2a-network:
+    driver: overlay
+    external: true
+  monitoring:
+    driver: overlay
+    external: true
+
+volumes:
+  postgres_data:
+    external: true
+  redis_data:
+    external: true
+  app_data:
+    external: true
+  logs:
+    external: true
+  traefik_letsencrypt:
+
+secrets:
+  db_password:
+    external: true
+  secret_key:
+    external: true
+  spaces_key:
+    external: true
+  spaces_secret:
+    external: true
+
+services:
+  # Reverse Proxy / Load Balancer
+  traefik:
+    image: traefik:v3.0
+    command:
+      - --api.dashboard=false
+      - --providers.docker=true
+      - --providers.docker.swarmMode=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      - --certificatesresolvers.letsencrypt.acme.httpchallenge=true
+      - --certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web
+      - --certificatesresolvers.letsencrypt.acme.email=admin@a2aworld.ai
+      - --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json
+      - --log.level=INFO
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik_letsencrypt:/letsencrypt
+    networks:
+      - a2a-network
+    deploy:
+      <<: *default-deploy
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+    logging: *default-logging
+
+  # PostgreSQL Database (External managed service recommended)
+  postgres:
+    image: postgis/postgis:15-3.3
+    environment:
+      POSTGRES_DB: a2a_world
+      POSTGRES_USER: a2a_user
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
+      PGDATA: /var/lib/postgresql/data/pgdata
+    secrets:
+      - db_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/schemas:/docker-entrypoint-initdb.d:ro
+    networks:
+      - a2a-network
+    deploy:
+      <<: *default-deploy
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.postgres == true
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+        reservations:
+          memory: 1G
+          cpus: '0.5'
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U a2a_user -d a2a_world"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging: *default-logging
+
+  # Redis for caching and session storage
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes --requirepass $REDIS_PASSWORD
+    environment:
+      - REDIS_PASSWORD_FILE=/run/secrets/redis_password
+    volumes:
+      - redis_data:/data
+    networks:
+      - a2a-network
+    deploy:
+      <<: *default-deploy
+      replicas: 1
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+    healthcheck:
+      test: ["CMD", "redis-cli", "--no-auth-warning", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging: *default-logging
+
+  # NATS for agent messaging
+  nats:
+    image: nats:2.10-alpine
+    command: 
+      - "-js"
+      - "-m"
+      - "8222"
+      - "--cluster_name=a2a-cluster"
+      - "--auth=/etc/nats/auth.conf"
+    volumes:
+      - ./config/nats:/etc/nats:ro
+    networks:
+      - a2a-network
+    deploy:
+      <<: *default-deploy
+      replicas: 1
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8222/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging: *default-logging
+
+  # FastAPI Backend - Scalable
+  api:
+    image: ${REGISTRY_URL}/a2a-world/api:${VERSION}
+    environment:
+      - DATABASE_URL=postgresql://a2a_user:${DB_PASSWORD}@postgres:5432/a2a_world?sslmode=prefer
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
+      - NATS_URL=nats://nats:4222
+      - SECRET_KEY_FILE=/run/secrets/secret_key
+      - ENVIRONMENT=production
+      - LOG_LEVEL=INFO
+    secrets:
+      - secret_key
+      - db_password
+      - spaces_key
+      - spaces_secret
+    volumes:
+      - app_data:/app/data
+      - logs:/app/logs
+    networks:
+      - a2a-network
+    deploy:
+      <<: *default-deploy
+      replicas: 3
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+        reservations:
+          memory: 512M
+          cpus: '0.25'
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.api.rule=Host(`api.a2aworld.ai`)"
+        - "traefik.http.routers.api.tls.certresolver=letsencrypt"
+        - "traefik.http.services.api.loadbalancer.server.port=8000"
+        - "traefik.http.services.api.loadbalancer.healthcheck.path=/health"
+    depends_on:
+      - postgres
+      - redis
+      - nats
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging: *default-logging
+
+  # Next.js Frontend - Scalable
+  frontend:
+    image: ${REGISTRY_URL}/a2a-world/frontend:${VERSION}
+    environment:
+      - NEXT_PUBLIC_API_URL=https://api.a2aworld.ai
+      - NODE_ENV=production
+    networks:
+      - a2a-network
+    deploy:
+      <<: *default-deploy
+      replicas: 2
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.frontend.rule=Host(`a2aworld.ai`) || Host(`www.a2aworld.ai`)"
+        - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
+        - "traefik.http.services.frontend.loadbalancer.server.port=3000"
+        - "traefik.http.middlewares.redirect-www.redirectregex.regex=^https://www.a2aworld.ai/(.*)"
+        - "traefik.http.middlewares.redirect-www.redirectregex.replacement=https://a2aworld.ai/$${1}"
+        - "traefik.http.routers.frontend.middlewares=redirect-www"
+    depends_on:
+      - api
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging: *default-logging
+
+  # KML Parser Agent
+  agent-kml-parser:
+    image: ${REGISTRY_URL}/a2a-world/agents:${VERSION}
+    command: python -m agents.parsers.kml_parser
+    environment:
+      - DATABASE_URL=postgresql://a2a_user:${DB_PASSWORD}@postgres:5432/a2a_world?sslmode=prefer
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
+      - NATS_URL=nats://nats:4222
+      - AGENT_TYPE=kml-parser
+      - LOG_LEVEL=INFO
+    secrets:
+      - db_password
+    volumes:
+      - app_data:/app/data
+      - logs:/app/logs
+    networks:
+      - a2a-network
+    deploy:
+      <<: *default-deploy
+      replicas: 2
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+    depends_on:
+      - postgres
+      - redis
+      - nats
+    logging: *default-logging
+
+  # Pattern Discovery Agent
+  agent-pattern-discovery:
+    image: ${REGISTRY_URL}/a2a-world/agents:${VERSION}
+    command: python -m agents.discovery.pattern_discovery
+    environment:
+      - DATABASE_URL=postgresql://a2a_user:${DB_PASSWORD}@postgres:5432/a2a_world?sslmode=prefer
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
+      - NATS_URL=nats://nats:4222
+      - AGENT_TYPE=pattern-discovery
+      - LOG_LEVEL=INFO
+    secrets:
+      - db_password
+    volumes:
+      - app_data:/app/data
+      - logs:/app/logs
+    networks:
+      - a2a-network
+    deploy:
+      <<: *default-deploy
+      replicas: 1
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+    depends_on:
+      - postgres
+      - redis
+      - nats
+    logging: *default-logging
+
+  # Monitoring Agent
+  agent-monitoring:
+    image: ${REGISTRY_URL}/a2a-world/agents:${VERSION}
+    command: python -m agents.monitoring.monitor_agent
+    environment:
+      - DATABASE_URL=postgresql://a2a_user:${DB_PASSWORD}@postgres:5432/a2a_world?sslmode=prefer
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
+      - NATS_URL=nats://nats:4222
+      - AGENT_TYPE=monitoring
+      - LOG_LEVEL=INFO
+    secrets:
+      - db_password
+    volumes:
+      - app_data:/app/data
+      - logs:/app/logs
+    networks:
+      - a2a-network
+      - monitoring
+    deploy:
+      <<: *default-deploy
+      replicas: 1
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+    depends_on:
+      - postgres
+      - redis
+      - nats
+    logging: *default-logging

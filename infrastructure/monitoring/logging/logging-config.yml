@@ -1,0 +1,192 @@
+# A2A World Platform - Application Logging Configuration
+# Structured logging configuration for all services
+
+version: 1
+disable_existing_loggers: false
+
+formatters:
+  json:
+    class: pythonjsonlogger.jsonlogger.JsonFormatter
+    format: '%(asctime)s %(name)s %(levelname)s %(pathname)s %(lineno)d %(process)d %(thread)d %(message)s'
+    datefmt: '%Y-%m-%dT%H:%M:%S%z'
+
+  detailed:
+    format: '[%(asctime)s] %(levelname)s [%(name)s:%(lineno)s] %(message)s'
+    datefmt: '%Y-%m-%d %H:%M:%S'
+
+  simple:
+    format: '%(levelname)s: %(message)s'
+
+handlers:
+  console:
+    class: logging.StreamHandler
+    level: INFO
+    formatter: json
+    stream: ext://sys.stdout
+
+  file:
+    class: logging.handlers.RotatingFileHandler
+    level: DEBUG
+    formatter: json
+    filename: /var/log/a2a-world/application.log
+    maxBytes: 100000000  # 100MB
+    backupCount: 5
+    encoding: utf8
+
+  error_file:
+    class: logging.handlers.RotatingFileHandler
+    level: ERROR
+    formatter: json
+    filename: /var/log/a2a-world/error.log
+    maxBytes: 50000000   # 50MB
+    backupCount: 10
+    encoding: utf8
+
+  security_file:
+    class: logging.handlers.RotatingFileHandler
+    level: WARNING
+    formatter: json
+    filename: /var/log/a2a-world/security.log
+    maxBytes: 50000000   # 50MB
+    backupCount: 10
+    encoding: utf8
+
+  audit_file:
+    class: logging.handlers.RotatingFileHandler
+    level: INFO
+    formatter: json
+    filename: /var/log/a2a-world/audit.log
+    maxBytes: 100000000  # 100MB
+    backupCount: 20
+    encoding: utf8
+
+  performance_file:
+    class: logging.handlers.RotatingFileHandler
+    level: INFO
+    formatter: json
+    filename: /var/log/a2a-world/performance.log
+    maxBytes: 100000000  # 100MB
+    backupCount: 5
+    encoding: utf8
+
+  syslog:
+    class: logging.handlers.SysLogHandler
+    level: WARNING
+    formatter: json
+    address: ['localhost', 514]
+    facility: local0
+
+loggers:
+  # Root logger
+  '':
+    level: INFO
+    handlers: [console, file, error_file]
+    propagate: false
+
+  # A2A World API
+  app:
+    level: INFO
+    handlers: [console, file, error_file]
+    propagate: false
+
+  app.security:
+    level: WARNING
+    handlers: [console, security_file, syslog]
+    propagate: false
+
+  app.audit:
+    level: INFO
+    handlers: [audit_file]
+    propagate: false
+
+  app.performance:
+    level: INFO
+    handlers: [performance_file]
+    propagate: false
+
+  # A2A World Agents
+  agents:
+    level: INFO
+    handlers: [console, file, error_file]
+    propagate: false
+
+  agents.parsers:
+    level: DEBUG
+    handlers: [console, file]
+    propagate: false
+
+  agents.discovery:
+    level: INFO
+    handlers: [console, file]
+    propagate: false
+
+  agents.monitoring:
+    level: INFO
+    handlers: [console, file, performance_file]
+    propagate: false
+
+  # Database
+  sqlalchemy.engine:
+    level: WARNING
+    handlers: [file]
+    propagate: false
+
+  sqlalchemy.pool:
+    level: WARNING
+    handlers: [file]
+    propagate: false
+
+  # HTTP requests
+  uvicorn.access:
+    level: INFO
+    handlers: [console, file]
+    propagate: false
+
+  uvicorn.error:
+    level: ERROR
+    handlers: [console, error_file]
+    propagate: false
+
+  # Security related
+  security:
+    level: WARNING
+    handlers: [security_file, syslog]
+    propagate: false
+
+  authentication:
+    level: INFO
+    handlers: [security_file, audit_file]
+    propagate: false
+
+  authorization:
+    level: INFO
+    handlers: [security_file, audit_file]
+    propagate: false
+
+  # External services
+  httpx:
+    level: WARNING
+    handlers: [file]
+    propagate: false
+
+  # Redis
+  redis:
+    level: WARNING
+    handlers: [file]
+    propagate: false
+
+  # NATS
+  nats:
+    level: INFO
+    handlers: [file]
+    propagate: false
+
+  # Consul
+  consul:
+    level: WARNING
+    handlers: [file]
+    propagate: false
+
+root:
+  level: INFO
+  handlers: [console, file, error_file]
