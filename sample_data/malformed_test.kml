@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <name>Malformed Test File</name>
+    <description>This file contains intentional errors for testing parser error handling</description>
+    
+    <!-- Missing closing Folder tag -->
+    <Folder>
+      <name>Test Folder
+      <description>Folder with missing closing name tag</description>
+      
+      <!-- Placemark with invalid coordinates -->
+      <Placemark>
+        <name>Invalid Coordinates Test</name>
+        <description>This placemark has coordinates outside valid ranges</description>
+        <Point>
+          <coordinates>-200,95,0</coordinates> <!-- Invalid: lon=-200, lat=95 -->
+        </Point>
+      </Placemark>
+      
+      <!-- Placemark with malformed coordinates -->
+      <Placemark>
+        <name>Malformed Coordinates</name>
+        <description>This placemark has badly formatted coordinates</description>
+        <Point>
+          <coordinates>not-a-number,also-not-a-number</coordinates>
+        </Point>
+      </Placemark>
+      
+      <!-- Placemark with missing coordinates -->
+      <Placemark>
+        <name>Missing Coordinates</name>
+        <description>This placemark has no coordinates</description>
+        <Point>
+          <coordinates></coordinates>
+        </Point>
+      </Placemark>
+      
+      <!-- Placemark with incomplete XML -->
+      <Placemark>
+        <name>Incomplete Placemark</name>
+        <description>This placemark is missing its Point geometry
+        <ExtendedData>
+          <Data name="test_field">
+            <value>test_value</value>
+          </Data>
+        </ExtendedData>
+      <!-- Missing closing Placemark tag -->
+      
+    <!-- Missing closing Folder tag here -->
+    
+    <!-- Another folder with different issues -->
+    <Folder>
+      <name>Special Characters & Encoding Test</name>
+      <description>Testing special characters: © ® ™ € £ ¥ § ¶ † ‡ • … ‰ ′ ″ ‹ › « » ¡ ¿</description>
+      
+      <Placemark>
+        <name>Encoding Test Site</name>
+        <description>Site with special characters in description: Ñoño's café in São Paulo costs €5</description>
+        <Point>
+          <coordinates>-46.633308,-23.550520,0</coordinates>
+        </Point>
+      </Placemark>
+    </Folder>
+    
+    <!-- Duplicate coordinate test -->
+    <Placemark>
+      <name>Duplicate Location 1</name>
+      <description>First duplicate at same coordinates</description>
+      <Point>
+        <coordinates>0,0,0</coordinates> <!-- Null Island - suspicious location -->
+      </Point>
+    </Placemark>
+    
+    <Placemark>
+      <name>Duplicate Location 2</name>
+      <description>Second duplicate at same coordinates</description>
+      <Point>
+        <coordinates>0,0,0</coordinates> <!-- Same as above -->
+      </Point>
+    </Placemark>
+    
+  </Document>
+<!-- Missing closing kml tag -->

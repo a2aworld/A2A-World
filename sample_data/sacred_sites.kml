@@ -1,0 +1,356 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <name>Sacred Sites Around the World</name>
+    <description>A collection of famous sacred sites and spiritual landmarks from various cultures and time periods.</description>
+    <author>A2A World Platform</author>
+    
+    <Folder>
+      <name>Ancient Stone Circles</name>
+      <description>Prehistoric stone circles with astronomical and spiritual significance</description>
+      
+      <Placemark>
+        <name>Stonehenge</name>
+        <description>Prehistoric monument consisting of a ring of standing stones, built between 3100 and 1600 BC. Famous for its astronomical alignments and mysterious purpose.</description>
+        <Point>
+          <coordinates>-1.826215,51.178882,0</coordinates>
+        </Point>
+        <ExtendedData>
+          <Data name="culture">
+            <value>Neolithic Britain</value>
+          </Data>
+          <Data name="time_period">
+            <value>3100-1600 BC</value>
+          </Data>
+          <Data name="site_type">
+            <value>stone_circle</value>
+          </Data>
+          <Data name="significance">
+            <value>astronomical_alignment</value>
+          </Data>
+          <Data name="unesco_site">
+            <value>true</value>
+          </Data>
+        </ExtendedData>
+      </Placemark>
+      
+      <Placemark>
+        <name>Avebury Stone Circle</name>
+        <description>Large Neolithic henge monument containing three stone circles, one of the largest stone circles in the world.</description>
+        <Point>
+          <coordinates>-1.853637,51.428631,0</coordinates>
+        </Point>
+        <ExtendedData>
+          <Data name="culture">
+            <value>Neolithic Britain</value>
+          </Data>
+          <Data name="time_period">
+            <value>2850 BC</value>
+          </Data>
+          <Data name="site_type">
+            <value>stone_circle</value>
+          </Data>
+          <Data name="significance">
+            <value>ceremonial_site</value>
+          </Data>
+          <Data name="unesco_site">
+            <value>true</value>
+          </Data>
+        </ExtendedData>
+      </Placemark>
+      
+      <Placemark>
+        <name>Ring of Brodgar</name>
+        <description>Neolithic stone circle in Orkney, Scotland, part of the Heart of Neolithic Orkney UNESCO World Heritage Site.</description>
+        <Point>
+          <coordinates>-3.227778,59.001111,0</coordinates>
+        </Point>
+        <ExtendedData>
+          <Data name="culture">
+            <value>Neolithic Scotland</value>
+          </Data>
+          <Data name="time_period">
+            <value>2500-2000 BC</value>
+          </Data>
+          <Data name="site_type">
+            <value>stone_circle</value>
+          </Data>
+          <Data name="significance">
+            <value>astronomical_alignment</value>
+          </Data>
+          <Data name="unesco_site">
+            <value>true</value>
+          </Data>
+        </ExtendedData>
+      </Placemark>
+    </Folder>
+    
+    <Folder>
+      <name>Ancient Pyramids</name>
+      <description>Pyramid structures from different civilizations around the world</description>
+      
+      <Placemark>
+        <name>Great Pyramid of Giza</name>
+        <description>The oldest and largest of the three pyramids in the Giza pyramid complex, built as a tomb for Pharaoh Khufu around 2580-2510 BC.</description>
+        <Point>
+          <coordinates>31.134202,29.979175,0</coordinates>
+        </Point>
+        <ExtendedData>
+          <Data name="culture">
+            <value>Ancient Egypt</value>
+          </Data>
+          <Data name="time_period">
+            <value>2580-2510 BC</value>
+          </Data>
+          <Data name="site_type">
+            <value>pyramid</value>
+          </Data>
+          <Data name="significance">
+            <value>burial_monument</value>
+          </Data>
+          <Data name="unesco_site">
+            <value>true</value>
+          </Data>
+          <Data name="height_meters">
+            <value>146.5</value>
+          </Data>
+        </ExtendedData>
+      </Placemark>
+      
+      <Placemark>
+        <name>Pyramid of Kukulcán (El Castillo)</name>
+        <description>Step pyramid at Chichen Itza, built by the pre-Columbian Maya civilization between the 9th and 12th centuries AD.</description>
+        <Point>
+          <coordinates>-88.568611,20.684444,0</coordinates>
+        </Point>
+        <ExtendedData>
+          <Data name="culture">
+            <value>Maya</value>
+          </Data>
+          <Data name="time_period">
+            <value>900-1200 AD</value>
+          </Data>
+          <Data name="site_type">
+            <value>pyramid</value>
+          </Data>
+          <Data name="significance">
+            <value>astronomical_calendar</value>
+          </Data>
+          <Data name="unesco_site">
+            <value>true</value>
+          </Data>
+          <Data name="height_meters">
+            <value>30</value>
+          </Data>
+        </ExtendedData>
+      </Placemark>
+      
+      <Placemark>
+        <name>Borobudur</name>
+        <description>9th-century Mahayana Buddhist temple and monument in Central Java, Indonesia, featuring a massive stone structure with over 2,600 relief panels.</description>
+        <Point>
+          <coordinates>110.203611,-7.607778,0</coordinates>
+        </Point>
+        <ExtendedData>
+          <Data name="culture">
+            <value>Javanese Buddhist</value>
+          </Data>
+          <Data name="time_period">
+            <value>750-850 AD</value>
+          </Data>
+          <Data name="site_type">
+            <value>temple</value>
+          </Data>
+          <Data name="significance">
+            <value>pilgrimage_site</value>
+          </Data>
+          <Data name="unesco_site">
+            <value>true</value>
+          </Data>
+          <Data name="religion">
+            <value>Buddhism</value>
+          </Data>
+        </ExtendedData>
+      </Placemark>
+    </Folder>
+    
+    <Folder>
+      <name>Mountain Sacred Sites</name>
+      <description>Sacred sites located on or around significant mountains</description>
+      
+      <Placemark>
+        <name>Machu Picchu</name>
+        <description>Ancient Incan citadel set high in the Andes Mountains of Peru, built around 1450 AD and later abandoned. A spiritual and astronomical center.</description>
+        <Point>
+          <coordinates>-72.545556,-13.163056,2430</coordinates>
+        </Point>
+        <ExtendedData>
+          <Data name="culture">
+            <value>Inca</value>
+          </Data>
+          <Data name="time_period">
+            <value>1450 AD</value>
+          </Data>
+          <Data name="site_type">
+            <value>citadel</value>
+          </Data>
+          <Data name="significance">
+            <value>astronomical_observatory</value>
+          </Data>
+          <Data name="unesco_site">
+            <value>true</value>
+          </Data>
+          <Data name="elevation_meters">
+            <value>2430</value>
+          </Data>
+        </ExtendedData>
+      </Placemark>
+      
+      <Placemark>
+        <name>Mount Kailash</name>
+        <description>Sacred mountain in Tibet, considered holy in four religions: Hinduism, Buddhism, Jainism, and Bon. Believed to be the abode of Lord Shiva.</description>
+        <Point>
+          <coordinates>81.311667,31.066667,6638</coordinates>
+        </Point>
+        <ExtendedData>
+          <Data name="culture">
+            <value>Multi-religious</value>
+          </Data>
+          <Data name="time_period">
+            <value>Ancient-Present</value>
+          </Data>
+          <Data name="site_type">
+            <value>sacred_mountain</value>
+          </Data>
+          <Data name="significance">
+            <value>pilgrimage_destination</value>
+          </Data>
+          <Data name="religions">
+            <value>Hinduism,Buddhism,Jainism,Bon</value>
+          </Data>
+          <Data name="elevation_meters">
+            <value>6638</value>
+          </Data>
+        </ExtendedData>
+      </Placemark>
+      
+      <Placemark>
+        <name>Uluru (Ayers Rock)</name>
+        <description>Large sandstone rock formation sacred to the Aboriginal Anangu people. Central to their creation stories and spiritual practices.</description>
+        <Point>
+          <coordinates>131.034444,-25.344444,348</coordinates>
+        </Point>
+        <ExtendedData>
+          <Data name="culture">
+            <value>Aboriginal Australian</value>
+          </Data>
+          <Data name="time_period">
+            <value>60000+ years</value>
+          </Data>
+          <Data name="site_type">
+            <value>natural_sacred</value>
+          </Data>
+          <Data name="significance">
+            <value>creation_mythology</value>
+          </Data>
+          <Data name="unesco_site">
+            <value>true</value>
+          </Data>
+          <Data name="elevation_meters">
+            <value>348</value>
+          </Data>
+        </ExtendedData>
+      </Placemark>
+    </Folder>
+    
+    <Folder>
+      <name>Temples and Religious Sites</name>
+      <description>Constructed temples and religious complexes</description>
+      
+      <Placemark>
+        <name>Angkor Wat</name>
+        <description>Temple complex in Cambodia, originally built as a Hindu temple dedicated to Vishnu, later transformed into a Buddhist temple.</description>
+        <Point>
+          <coordinates>103.866667,13.4125,0</coordinates>
+        </Point>
+        <ExtendedData>
+          <Data name="culture">
+            <value>Khmer</value>
+          </Data>
+          <Data name="time_period">
+            <value>1113-1150 AD</value>
+          </Data>
+          <Data name="site_type">
+            <value>temple_complex</value>
+          </Data>
+          <Data name="significance">
+            <value>astronomical_alignment</value>
+          </Data>
+          <Data name="unesco_site">
+            <value>true</value>
+          </Data>
+          <Data name="religions">
+            <value>Hinduism,Buddhism</value>
+          </Data>
+        </ExtendedData>
+      </Placemark>
+      
+      <Placemark>
+        <name>Varanasi Ghats</name>
+        <description>Sacred steps along the River Ganges in Varanasi, India. One of the oldest continuously inhabited cities and holiest places in Hinduism.</description>
+        <Point>
+          <coordinates>83.010833,25.318889,0</coordinates>
+        </Point>
+        <ExtendedData>
+          <Data name="culture">
+            <value>Hindu</value>
+          </Data>
+          <Data name="time_period">
+            <value>3000+ years</value>
+          </Data>
+          <Data name="site_type">
+            <value>pilgrimage_site</value>
+          </Data>
+          <Data name="significance">
+            <value>spiritual_cleansing</value>
+          </Data>
+          <Data name="religions">
+            <value>Hinduism</value>
+          </Data>
+          <Data name="status">
+            <value>active_pilgrimage</value>
+          </Data>
+        </ExtendedData>
+      </Placemark>
+      
+      <Placemark>
+        <name>Jerusalem - Temple Mount</name>
+        <description>Religious site in the Old City of Jerusalem, holy to Judaism, Christianity, and Islam. Location of the ancient Jewish temples.</description>
+        <Point>
+          <coordinates>35.235278,31.778056,0</coordinates>
+        </Point>
+        <ExtendedData>
+          <Data name="culture">
+            <value>Multi-religious</value>
+          </Data>
+          <Data name="time_period">
+            <value>1000 BC-Present</value>
+          </Data>
+          <Data name="site_type">
+            <value>temple_mount</value>
+          </Data>
+          <Data name="significance">
+            <value>monotheistic_religions</value>
+          </Data>
+          <Data name="unesco_site">
+            <value>true</value>
+          </Data>
+          <Data name="religions">
+            <value>Judaism,Christianity,Islam</value>
+          </Data>
+        </ExtendedData>
+      </Placemark>
+    </Folder>
+    
+  </Document>
+</kml>

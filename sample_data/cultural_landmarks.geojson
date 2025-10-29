@@ -1,0 +1,326 @@
+{
+  "type": "FeatureCollection",
+  "name": "Cultural Landmarks Around the World",
+  "description": "A collection of significant cultural landmarks and heritage sites from various civilizations and time periods",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Parthenon",
+        "description": "Ancient Greek temple on the Athenian Acropolis dedicated to the goddess Athena, built in 447-432 BC",
+        "culture": "Ancient Greece",
+        "time_period": "447-432 BC",
+        "site_type": "temple",
+        "significance": "architectural_masterpiece",
+        "unesco_site": true,
+        "religion": "Ancient Greek polytheism",
+        "architectural_style": "Doric",
+        "current_status": "ruins"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [23.726639, 37.971536]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Colosseum",
+        "description": "Largest amphitheatre ever built, used for gladiatorial contests and public spectacles in ancient Rome",
+        "culture": "Roman Empire",
+        "time_period": "70-80 AD",
+        "site_type": "amphitheatre",
+        "significance": "entertainment_architecture",
+        "unesco_site": true,
+        "capacity": 50000,
+        "architectural_style": "Roman",
+        "current_status": "partially_restored"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [12.492269, 41.890251]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Petra - Al-Khazneh (The Treasury)",
+        "description": "Famous rock-cut architecture and water conduit system of the ancient Nabataean city",
+        "culture": "Nabataean",
+        "time_period": "300 BC - 300 AD",
+        "site_type": "rock_cut_architecture",
+        "significance": "trade_center",
+        "unesco_site": true,
+        "architectural_style": "Nabataean",
+        "carved_from": "sandstone",
+        "current_status": "archaeological_site"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [35.449167, 30.328611]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Taj Mahal",
+        "description": "Ivory-white marble mausoleum commissioned by Mughal emperor Shah Jahan as tomb for his wife Mumtaz Mahal",
+        "culture": "Mughal Empire",
+        "time_period": "1632-1648 AD",
+        "site_type": "mausoleum",
+        "significance": "architectural_monument",
+        "unesco_site": true,
+        "architectural_style": "Indo-Islamic",
+        "material": "white_marble",
+        "current_status": "preserved_monument"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [78.042139, 27.175015]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Easter Island Moai Statues",
+        "description": "Monolithic human figures carved by the Rapa Nui people between 1250-1500 AD",
+        "culture": "Rapa Nui (Polynesian)",
+        "time_period": "1250-1500 AD",
+        "site_type": "monumental_sculptures",
+        "significance": "ancestral_worship",
+        "unesco_site": true,
+        "total_statues": 1000,
+        "material": "volcanic_rock",
+        "current_status": "protected_site"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-109.349686, -27.122751]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Newgrange",
+        "description": "Neolithic monument older than Stonehenge and Pyramids, built around 3200 BC in Ireland",
+        "culture": "Neolithic Ireland",
+        "time_period": "3200 BC",
+        "site_type": "passage_tomb",
+        "significance": "astronomical_alignment",
+        "unesco_site": true,
+        "winter_solstice": true,
+        "architectural_type": "corbelled_chamber",
+        "current_status": "restored_monument"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-6.475278, 53.694722]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Persepolis",
+        "description": "Ceremonial capital of the Achaemenid Empire, built by Darius I around 518 BC",
+        "culture": "Persian Achaemenid",
+        "time_period": "518 BC",
+        "site_type": "palace_complex",
+        "significance": "imperial_capital",
+        "unesco_site": true,
+        "destroyed_by": "Alexander the Great",
+        "architectural_style": "Achaemenid",
+        "current_status": "archaeological_ruins"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [52.891111, 29.935556]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Forbidden City",
+        "description": "Chinese imperial palace complex that served as the home of emperors for nearly 500 years",
+        "culture": "Imperial China",
+        "time_period": "1406-1420 AD",
+        "site_type": "palace_complex",
+        "significance": "imperial_residence",
+        "unesco_site": true,
+        "dynasties": "Ming, Qing",
+        "area_hectares": 72,
+        "buildings_count": 980,
+        "current_status": "museum"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [116.397222, 39.917222]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Tikal Temple Complex",
+        "description": "Major Maya archaeological site with pyramids and temples dating from 600 BC to 900 AD",
+        "culture": "Maya",
+        "time_period": "600 BC - 900 AD",
+        "site_type": "temple_complex",
+        "significance": "ceremonial_center",
+        "unesco_site": true,
+        "tallest_temple_meters": 65,
+        "population_peak": 100000,
+        "current_status": "national_park"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-89.623056, 17.221944]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Mont-Saint-Michel",
+        "description": "Medieval abbey built on a tidal island, representing Gothic and Romanesque architecture",
+        "culture": "Medieval French",
+        "time_period": "708-1523 AD",
+        "site_type": "abbey",
+        "significance": "pilgrimage_destination",
+        "unesco_site": true,
+        "religion": "Christianity",
+        "architectural_styles": "Romanesque, Gothic",
+        "tidal_island": true,
+        "current_status": "active_monastery_museum"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-1.510556, 48.636111]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Sagrada Família",
+        "description": "Large unfinished Roman Catholic minor basilica designed by Antoni Gaudí, begun in 1882",
+        "culture": "Modern Catalan",
+        "time_period": "1882-present",
+        "site_type": "basilica",
+        "significance": "architectural_innovation",
+        "unesco_site": true,
+        "architect": "Antoni Gaudí",
+        "architectural_style": "Modernist Art Nouveau",
+        "estimated_completion": "2026",
+        "current_status": "under_construction"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [2.174444, 41.403611]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Lalibela Rock Churches",
+        "description": "Medieval monolithic rock-cut churches in Ethiopia, carved directly into solid volcanic rock",
+        "culture": "Ethiopian Orthodox",
+        "time_period": "1181-1221 AD",
+        "site_type": "rock_churches",
+        "significance": "pilgrimage_site",
+        "unesco_site": true,
+        "churches_count": 11,
+        "religion": "Ethiopian Orthodox Christianity",
+        "carved_from": "volcanic_rock",
+        "current_status": "active_pilgrimage"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [39.041667, 12.031667]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Alhambra",
+        "description": "Palace and fortress complex reflecting the zenith of Moorish art in Europe",
+        "culture": "Moorish Andalusi",
+        "time_period": "1238-1358 AD",
+        "site_type": "palace_fortress",
+        "significance": "islamic_architecture",
+        "unesco_site": true,
+        "architectural_style": "Islamic Mudéjar",
+        "decoration_style": "geometric_patterns",
+        "current_status": "museum_palace"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-3.588333, 37.176944]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Mesa Verde Cliff Dwellings",
+        "description": "Well-preserved Ancestral Puebloan cliff dwellings built between 600-1300 AD",
+        "culture": "Ancestral Puebloan",
+        "time_period": "600-1300 AD",
+        "site_type": "cliff_dwellings",
+        "significance": "architectural_adaptation",
+        "unesco_site": true,
+        "dwellings_count": 600,
+        "largest_dwelling": "Cliff Palace",
+        "current_status": "national_park"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-108.491667, 37.231667]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Göbekli Tepe",
+        "description": "Archaeological site with massive stone pillars arranged in circles, predating Stonehenge",
+        "culture": "Pre-Pottery Neolithic",
+        "time_period": "9500-8000 BC",
+        "site_type": "temple_complex",
+        "significance": "earliest_temple",
+        "unesco_site": true,
+        "circles_count": 20,
+        "oldest_temple": true,
+        "current_status": "active_excavation"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [38.922778, 37.223056]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Bagan Archaeological Zone",
+        "description": "Ancient city with over 2000 Buddhist temples and pagodas from the 9th-13th centuries",
+        "culture": "Burmese Buddhist",
+        "time_period": "850-1300 AD",
+        "site_type": "temple_zone",
+        "significance": "buddhist_center",
+        "unesco_site": true,
+        "temples_count": 2000,
+        "religion": "Buddhism",
+        "peak_temples": 10000,
+        "current_status": "archaeological_zone"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [94.858889, 21.172222]
+      }
+    }
+  ],
+  "metadata": {
+    "created_by": "A2A World Platform",
+    "creation_date": "2024-10-29",
+    "total_features": 16,
+    "coverage": "Global",
+    "time_span": "9500 BC - Present",
+    "data_quality": "High",
+    "coordinate_system": "WGS84",
+    "unesco_sites": 15
+  }
+}

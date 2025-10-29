@@ -28,6 +28,8 @@ from agents.core.base_agent import BaseAgent
 from agents.core.config import DiscoveryAgentConfig
 from agents.core.messaging import AgentMessage
 from agents.core.task_queue import Task
+from agents.core.pattern_storage import PatternStorage
+from agents.discovery.clustering import GeospatialHDBSCAN, SpatialStatistics, PatternSignificanceTest
 
 
 class PatternDiscoveryAgent(BaseAgent):
@@ -72,7 +74,18 @@ class PatternDiscoveryAgent(BaseAgent):
         # Pattern cache for avoiding duplicate analysis
         self.pattern_cache: Dict[str, Dict[str, Any]] = {}
         
-        self.logger.info(f"PatternDiscoveryAgent {self.agent_id} initialized with algorithms: {self.clustering_algorithms}")
+        # Initialize database storage and clustering utilities
+        self.pattern_storage = PatternStorage()
+        self.spatial_statistics = SpatialStatistics()
+        self.significance_tester = PatternSignificanceTest(significance_level=0.05)
+        
+        # Enhanced clustering with geospatial optimization
+        self.hdbscan_clusterer = GeospatialHDBSCAN(
+            min_cluster_size=self.min_cluster_size,
+            min_samples=self.min_samples
+        )
+        
+        self.logger.info(f"PatternDiscoveryAgent {self.agent_id} initialized with database integration")
     
     async def process(self) -> None:
         """
@@ -275,6 +288,7 @@ class PatternDiscoveryAgent(BaseAgent):
     async def discover_patterns(self, dataset: Dict[str, Any], algorithm: str = "hdbscan") -> Dict[str, Any]:
         """
         Discover patterns in the given dataset using specified algorithm.
+        Enhanced with database integration and advanced statistical validation.
         """
         try:
             dataset_id = dataset.get("id", str(uuid.uuid4()))
@@ -287,21 +301,35 @@ class PatternDiscoveryAgent(BaseAgent):
             
             self.logger.info(f"Discovering patterns in dataset {dataset_id} using {algorithm}")
             
-            # Extract spatial data
-            spatial_data = self._extract_spatial_features(dataset)
+            # Extract spatial data - try from database first
+            spatial_data = await self._get_spatial_data(dataset)
             if not spatial_data:
-                raise ValueError("No spatial data found in dataset")
+                spatial_data = self._extract_spatial_features(dataset)
+                if not spatial_data:
+                    raise ValueError("No spatial data found in dataset")
             
-            # Perform clustering
-            clustering_result = await self._perform_clustering(spatial_data, algorithm)
+            # Perform enhanced clustering
+            clustering_result = await self._perform_enhanced_clustering(spatial_data, algorithm)
             
-            # Analyze clusters for patterns
-            patterns = await self._analyze_clusters(clustering_result, spatial_data)
+            # Analyze clusters for patterns with statistical validation
+            patterns = await self._analyze_clusters_enhanced(clustering_result, spatial_data)
             
-            # Assess pattern significance
-            for pattern in patterns:
-                significance = await self._assess_pattern_significance(pattern, spatial_data)
-                pattern.update(significance)
+            # Store patterns in database
+            if patterns:
+                pattern_id = await self.pattern_storage.store_pattern({
+                    "patterns": patterns,
+                    "clustering_result": clustering_result,
+                    "algorithm": algorithm,
+                    "dataset_id": dataset_id,
+                    "confidence_score": sum(p.get("confidence_level", 0) for p in patterns) / len(patterns),
+                    "sample_size": len(spatial_data),
+                    "metadata": {
+                        "discovery_method": "enhanced_hdbscan",
+                        "spatial_statistics_included": True
+                    }
+                }, self.agent_id)
+                
+                self.logger.info(f"Stored patterns in database with ID: {pattern_id}")
             
             result = {
                 "dataset_id": dataset_id,
@@ -311,7 +339,8 @@ class PatternDiscoveryAgent(BaseAgent):
                 "significant_patterns": len([p for p in patterns if p.get("significant", False)]),
                 "clustering_result": clustering_result,
                 "discovered_at": datetime.utcnow().isoformat(),
-                "discovery_agent": self.agent_id
+                "discovery_agent": self.agent_id,
+                "stored_in_database": len(patterns) > 0
             }
             
             # Cache result
@@ -893,6 +922,277 @@ class PatternDiscoveryAgent(BaseAgent):
             
         except Exception as e:
             return {"error": str(e), "hotspots": []}
+    
+    # Enhanced methods for database integration
+    
+    async def _get_spatial_data(self, dataset: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """
+        Get spatial data from database or dataset.
+        Enhanced to fetch sacred sites from database when no dataset provided.
+        """
+        try:
+            # If dataset has explicit data, use it
+            spatial_data = self._extract_spatial_features(dataset)
+            if spatial_data:
+                return spatial_data
+            
+            # Otherwise, fetch from database
+            self.logger.info("Fetching sacred sites from database for pattern discovery")
+            sacred_sites = await self.pattern_storage.get_sacred_sites(limit=1000)
+            
+            if not sacred_sites:
+                # Create sample data if none exists
+                created_count = await self.pattern_storage.create_sample_sacred_sites(50)
+                if created_count > 0:
+                    sacred_sites = await self.pattern_storage.get_sacred_sites(limit=1000)
+            
+            return sacred_sites
+            
+        except Exception as e:
+            self.logger.error(f"Failed to get spatial data: {e}")
+            return []
+    
+    async def _perform_enhanced_clustering(self, data: List[Dict[str, Any]], algorithm: str) -> Dict[str, Any]:
+        """
+        Perform enhanced clustering with geospatial optimization.
+        """
+        try:
+            if not data:
+                return {"error": "No data provided", "clusters": []}
+            
+            # Convert to DataFrame for processing
+            df = pd.DataFrame(data)
+            
+            # Extract features for clustering
+            features = []
+            coordinates = []
+            
+            if "latitude" in df.columns and "longitude" in df.columns:
+                features.extend(["latitude", "longitude"])
+                coordinates = df[["latitude", "longitude"]].values
+            
+            # Add other numerical features
+            for col in df.columns:
+                if col not in features and col not in ["id", "name", "description", "site_type", "cultural_context"]:
+                    if pd.api.types.is_numeric_dtype(df[col]):
+                        features.append(col)
+            
+            if not features:
+                return {"error": "No suitable features for clustering", "clusters": []}
+            
+            X = df[features].values
+            
+            # Handle missing values
+            if np.isnan(X).any():
+                X = np.nan_to_num(X)
+            
+            # Use enhanced HDBSCAN clustering
+            if algorithm == "hdbscan" and CLUSTERING_LIBS_AVAILABLE:
+                self.logger.info("Using enhanced geospatial HDBSCAN clustering")
+                cluster_labels = self.hdbscan_clusterer.fit_predict(X, coordinates)
+                
+                # Get clustering quality metrics
+                try:
+                    if len(set(cluster_labels)) > 1:
+                        silhouette = self._calculate_silhouette_score(X, cluster_labels)
+                    else:
+                        silhouette = -1.0
+                except:
+                    silhouette = -1.0
+                
+                cluster_info = {
+                    "probabilities": getattr(self.hdbscan_clusterer, 'probabilities_', []),
+                    "outlier_scores": getattr(self.hdbscan_clusterer, 'outlier_scores_', []),
+                    "silhouette_score": silhouette
+                }
+            else:
+                # Fall back to original clustering
+                return await self._perform_clustering(data, algorithm)
+            
+            # Organize results with enhanced spatial analysis
+            clusters = self._organize_clusters_enhanced(data, cluster_labels, features, coordinates)
+            
+            return {
+                "algorithm": algorithm,
+                "features_used": features,
+                "cluster_labels": cluster_labels.tolist(),
+                "clusters": clusters,
+                "n_clusters": len(set(cluster_labels)) - (1 if -1 in cluster_labels else 0),
+                "n_noise": np.sum(cluster_labels == -1),
+                "cluster_info": cluster_info,
+                "spatial_analysis_included": True
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Enhanced clustering failed: {e}")
+            return {"error": str(e), "clusters": []}
+    
+    def _organize_clusters_enhanced(self, data: List[Dict[str, Any]],
+                                  labels: np.ndarray,
+                                  features: List[str],
+                                  coordinates: Optional[np.ndarray] = None) -> List[Dict[str, Any]]:
+        """
+        Organize clustering results with enhanced spatial statistics.
+        """
+        try:
+            clusters = []
+            unique_labels = set(labels)
+            
+            for label in unique_labels:
+                if label == -1:  # Noise/outliers
+                    continue
+                
+                cluster_indices = np.where(labels == label)[0]
+                cluster_points = [data[i] for i in cluster_indices]
+                
+                # Basic cluster info
+                cluster_info = {
+                    "cluster_id": int(label),
+                    "size": len(cluster_points),
+                    "points": cluster_points,
+                    "indices": cluster_indices.tolist()
+                }
+                
+                # Enhanced spatial analysis
+                if coordinates is not None and len(cluster_points) >= 3:
+                    cluster_coords = coordinates[cluster_indices]
+                    
+                    # Calculate centroid and bounds
+                    cluster_info["centroid"] = {
+                        "latitude": float(np.mean(cluster_coords[:, 0])),
+                        "longitude": float(np.mean(cluster_coords[:, 1]))
+                    }
+                    
+                    cluster_info["bounds"] = {
+                        "north": float(np.max(cluster_coords[:, 0])),
+                        "south": float(np.min(cluster_coords[:, 0])),
+                        "east": float(np.max(cluster_coords[:, 1])),
+                        "west": float(np.min(cluster_coords[:, 1]))
+                    }
+                    
+                    # Enhanced spatial metrics
+                    area = self._calculate_cluster_area(cluster_info)
+                    density = len(cluster_points) / max(1, area)
+                    compactness = self._calculate_cluster_compactness(cluster_info)
+                    
+                    cluster_info["spatial_metrics"] = {
+                        "area_km2": area,
+                        "density": density,
+                        "compactness": compactness
+                    }
+                    
+                    # Spatial statistics
+                    try:
+                        spatial_stats = self.spatial_statistics.calculate_nearest_neighbor_statistic(cluster_points)
+                        cluster_info["spatial_statistics"] = spatial_stats
+                    except Exception as e:
+                        self.logger.warning(f"Spatial statistics calculation failed: {e}")
+                
+                clusters.append(cluster_info)
+            
+            return clusters
+            
+        except Exception as e:
+            self.logger.error(f"Enhanced cluster organization failed: {e}")
+            return []
+    
+    async def _analyze_clusters_enhanced(self, clustering_result: Dict[str, Any],
+                                       spatial_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Analyze clusters with enhanced statistical validation.
+        """
+        try:
+            patterns = []
+            clusters = clustering_result.get("clusters", [])
+            
+            for cluster in clusters:
+                try:
+                    pattern = {
+                        "pattern_id": str(uuid.uuid4()),
+                        "pattern_type": "spatial_clustering",
+                        "cluster_info": cluster,
+                        "description": f"Geospatial cluster with {cluster['size']} sacred sites"
+                    }
+                    
+                    # Add enhanced spatial analysis
+                    if "spatial_metrics" in cluster:
+                        pattern["spatial_properties"] = cluster["spatial_metrics"]
+                    
+                    if "spatial_statistics" in cluster:
+                        pattern["spatial_statistics"] = cluster["spatial_statistics"]
+                    
+                    # Statistical significance testing
+                    significance_result = self.significance_tester.assess_cluster_significance(
+                        cluster, spatial_data
+                    )
+                    pattern.update(significance_result)
+                    
+                    # Temporal analysis (if available)
+                    temporal_analysis = self._analyze_temporal_patterns(cluster["points"])
+                    if temporal_analysis:
+                        pattern["temporal_properties"] = temporal_analysis
+                    
+                    # Cultural/thematic analysis
+                    thematic_analysis = self._analyze_thematic_patterns(cluster["points"])
+                    if thematic_analysis:
+                        pattern["thematic_properties"] = thematic_analysis
+                    
+                    patterns.append(pattern)
+                    
+                except Exception as e:
+                    self.logger.warning(f"Error analyzing cluster {cluster.get('cluster_id', 'unknown')}: {e}")
+            
+            self.logger.info(f"Enhanced analysis completed: {len(patterns)} patterns analyzed")
+            return patterns
+            
+        except Exception as e:
+            self.logger.error(f"Enhanced cluster analysis failed: {e}")
+            return []
+    
+    def _calculate_silhouette_score(self, X: np.ndarray, labels: np.ndarray) -> float:
+        """Calculate silhouette score for clustering quality assessment."""
+        try:
+            if len(set(labels)) < 2 or len(labels) < 3:
+                return -1.0
+            
+            # Filter out noise points for silhouette calculation
+            valid_indices = labels != -1
+            if np.sum(valid_indices) < 2:
+                return -1.0
+            
+            from sklearn.metrics import silhouette_score
+            return float(silhouette_score(X[valid_indices], labels[valid_indices]))
+            
+        except Exception as e:
+            self.logger.warning(f"Silhouette score calculation failed: {e}")
+            return -1.0
+    
+    async def discover_patterns_from_database(self) -> Dict[str, Any]:
+        """
+        Convenience method to discover patterns from database sacred sites.
+        """
+        try:
+            self.logger.info("Starting pattern discovery from database sacred sites")
+            
+            # Create empty dataset to trigger database fetch
+            dataset = {
+                "id": f"db_discovery_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}",
+                "source": "database",
+                "description": "Pattern discovery from database sacred sites"
+            }
+            
+            result = await self.discover_patterns(dataset, "hdbscan")
+            
+            self.logger.info(f"Database pattern discovery completed: {result.get('pattern_count', 0)} patterns found")
+            return result
+            
+        except Exception as e:
+            self.logger.error(f"Database pattern discovery failed: {e}")
+            return {
+                "error": str(e),
+                "patterns": [],
+                "pattern_count": 0
+            }
 
 
 # Main entry point for running the agent

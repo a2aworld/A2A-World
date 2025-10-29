@@ -1,0 +1,217 @@
+{
+  "type": "FeatureCollection",
+  "name": "Test File with Invalid Features",
+  "description": "This GeoJSON file contains various invalid features to test error handling",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Valid Feature",
+        "description": "This feature should parse correctly"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [0.0, 51.5]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Missing Geometry",
+        "description": "This feature has no geometry property"
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Null Geometry",
+        "description": "This feature has null geometry"
+      },
+      "geometry": null
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Empty Geometry",
+        "description": "This feature has empty geometry object"
+      },
+      "geometry": {}
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Invalid Geometry Type",
+        "description": "This feature has invalid geometry type"
+      },
+      "geometry": {
+        "type": "InvalidType",
+        "coordinates": [0, 0]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Missing Coordinates",
+        "description": "Point geometry without coordinates"
+      },
+      "geometry": {
+        "type": "Point"
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Empty Coordinates Array",
+        "description": "Point with empty coordinates array"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": []
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Invalid Coordinates - Out of Range",
+        "description": "Point with coordinates outside valid ranges"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-200, 95]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "String Coordinates",
+        "description": "Point with string coordinates instead of numbers"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": ["not-a-number", "also-not-a-number"]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Insufficient Coordinates",
+        "description": "Point with only one coordinate"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [0]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Null Island",
+        "description": "Suspicious coordinates at 0,0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [0, 0]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "LineString - Too Few Points",
+        "description": "LineString with insufficient points"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [[0, 0]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Polygon - Not Closed",
+        "description": "Polygon ring that is not closed"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[0, 0], [1, 0], [1, 1]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Polygon - Too Few Points",
+        "description": "Polygon with insufficient points in ring"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[0, 0], [1, 0]]]
+      }
+    },
+    {
+      "type": "InvalidFeature",
+      "properties": {
+        "name": "Invalid Feature Type",
+        "description": "Object with wrong type property"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [0, 0]
+      }
+    },
+    {
+      "properties": {
+        "name": "Missing Type Property",
+        "description": "Object missing the type property"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [0, 0]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": null,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [1, 1]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "description": "Feature missing name property"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [2, 2]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "",
+        "description": "Feature with empty name"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [3, 3]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Unicode Test: 北京市",
+        "description": "Feature with Unicode characters in name",
+        "special_chars": "Testing: © ® ™ € £ ¥"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [116.4074, 39.9042]
+      }
+    }
+  ],
+  "metadata": {
+    "test_file": true,
+    "contains_invalid_features": true,
+    "purpose": "Error handling validation"
+  }
+}

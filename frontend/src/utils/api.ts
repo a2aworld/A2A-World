@@ -246,24 +246,63 @@ export class PatternsApi extends ApiClient {
 }
 
 export class DataApi extends ApiClient {
-  async getDatasets() {
-    return this.get('/data/datasets');
+  // Enhanced dataset management
+  async getDatasets(params?: {
+    limit?: number;
+    offset?: number;
+    file_type?: string;
+  }) {
+    const query = new URLSearchParams(params as any).toString();
+    return this.get(`/data/${query ? `?${query}` : ''}`);
   }
 
-  async getDataset(datasetId: string) {
-    return this.get(`/data/datasets/${datasetId}`);
+  async getDataset(datasetId: string, includeFeatures?: boolean, featureLimit?: number) {
+    const params = new URLSearchParams();
+    if (includeFeatures) params.append('include_features', 'true');
+    if (featureLimit) params.append('feature_limit', featureLimit.toString());
+    
+    const query = params.toString();
+    return this.get(`/data/${datasetId}${query ? `?${query}` : ''}`);
   }
 
+  // Enhanced file upload with real-time progress
+  async uploadDataFile(file: File, onProgress?: (progress: number) => void) {
+    return this.uploadFile('/data/upload', file, onProgress);
+  }
+
+  // Get upload status and progress
+  async getUploadStatus(uploadId: string) {
+    return this.get(`/data/upload/${uploadId}/status`);
+  }
+
+  // Validate file before upload
+  async validateFile(filePath: string, fileType?: string) {
+    return this.post('/data/validate', { file_path: filePath, file_type: fileType });
+  }
+
+  // Delete dataset
+  async deleteDataset(datasetId: string) {
+    return this.delete(`/data/${datasetId}`);
+  }
+
+  // Get summary statistics
+  async getDataSummary() {
+    return this.get('/data/stats/summary');
+  }
+
+  // Legacy method for backward compatibility
   async uploadDataset(file: File, metadata: any, onProgress?: (progress: number) => void) {
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('metadata', JSON.stringify(metadata));
+    if (metadata) {
+      formData.append('metadata', JSON.stringify(metadata));
+    }
 
     const config: AxiosRequestConfig = {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
-      onUploadProgress: (progressEvent) => {
+      onUploadProgress: (progressEvent: any) => {
         if (onProgress && progressEvent.total) {
           const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
           onProgress(progress);
@@ -271,17 +310,12 @@ export class DataApi extends ApiClient {
       },
     };
 
-    const response = await this.client.post<ApiResponse<any>>('/data/upload', formData, config);
-    return response.data;
-  }
-
-  async deleteDataset(datasetId: string) {
-    return this.delete(`/data/datasets/${datasetId}`);
+    return this.post('/data/upload', formData, config);
   }
 
   async getDatasetPoints(datasetId: string, params?: { bounds?: any; limit?: number }) {
     const query = new URLSearchParams(params as any).toString();
-    return this.get(`/data/datasets/${datasetId}/points${query ? `?${query}` : ''}`);
+    return this.get(`/data/${datasetId}/points${query ? `?${query}` : ''}`);
   }
 }
 

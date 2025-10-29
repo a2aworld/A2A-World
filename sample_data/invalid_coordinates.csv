@@ -1,0 +1,25 @@
+name,latitude,longitude,description,culture,site_type,notes
+Valid Site 1,40.7589,-73.9851,A valid location in New York,Modern,landmark,This should parse correctly
+Invalid Latitude High,95.0000,-73.9851,Location with latitude > 90,Unknown,test,Latitude out of range
+Invalid Latitude Low,-95.0000,-73.9851,Location with latitude < -90,Unknown,test,Latitude out of range  
+Invalid Longitude High,40.7589,185.0000,Location with longitude > 180,Unknown,test,Longitude out of range
+Invalid Longitude Low,40.7589,-185.0000,Location with longitude < -180,Unknown,test,Longitude out of range
+Null Island,0,0,Suspicious location at 0 0,Unknown,test,Possibly data entry error
+Missing Latitude,,12.345,Location missing latitude,Unknown,test,Required coordinate missing
+Missing Longitude,45.678,,Location missing longitude,Unknown,test,Required coordinate missing
+Non-numeric Latitude,not-a-number,12.345,Location with text in latitude,Unknown,test,Invalid coordinate format
+Non-numeric Longitude,45.678,also-not-a-number,Location with text in longitude,Unknown,test,Invalid coordinate format
+Swapped Coordinates,74.006,40.712,Possibly swapped lat/lon,Unknown,test,Values suggest coordinate swap
+Empty Name,,40.7589,-73.9851,Location without name,Unknown,test,Missing required field
+Very Long Coordinates,40.758895647382910,-73.985134729581047,Excessively precise coordinates,Modern,test,Too many decimal places
+Round Coordinates,41.0000,-74.0000,Suspiciously round coordinates,Unknown,test,Possible low precision data
+Valid Site 2,51.5074,-0.1278,Another valid location in London,Modern,landmark,This should parse correctly
+Special Characters in Name,40.7589,-73.9851,"Location with ""quotes"" and commas",Modern,test,CSV parsing challenge
+Unicode Name: 北京,39.9042,116.4074,Location with Unicode characters,Chinese,landmark,Beijing coordinates
+Decimal Comma European,48.8566;2.3522,Paris coordinates with European format,French,landmark,Semicolon separator issue
+Extra Whitespace,  40.7589  ,  -73.9851  ,Location with extra spaces,Unknown,test,Whitespace handling
+Tab Separated,40.7589	-73.9851,Location with tab character,Unknown,test,Different delimiter
+Very Short Name,X,40.7589,-73.9851,Single character name,Unknown,test,Very short name
+Duplicate Coordinates 1,40.7589,-73.9851,First duplicate location,Modern,test,Testing duplicate detection
+Duplicate Coordinates 2,40.7589,-73.9851,Second duplicate location,Modern,test,Same coordinates as above
+Generic Name,Point,40.7589,-73.9851,Generic placeholder name,Unknown,test,Non-descriptive name

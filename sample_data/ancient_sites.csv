@@ -1,0 +1,28 @@
+name,latitude,longitude,culture,time_period,site_type,significance,unesco_site,elevation_meters,discovery_year,excavation_status,description
+Çatalhöyük,37.6681,32.8262,Neolithic Anatolia,7500-5700 BC,settlement,early_urban_development,true,1011,1958,ongoing,One of the world's first urban settlements with sophisticated wall paintings and religious practices
+Skara Brae,59.0486,-3.3425,Neolithic Orkney,3200-2500 BC,village,preserved_stone_houses,true,7,1850,completed,Remarkably well-preserved Neolithic village in Scotland showing daily life 5000 years ago
+Pompeii,40.7489,14.4839,Roman,79 AD,city,volcanic_preservation,true,14,1599,ongoing,Roman city preserved by volcanic ash from Mount Vesuvius eruption
+Lascaux Cave,45.0536,1.1667,Paleolithic France,17000 BC,cave_paintings,prehistoric_art,true,185,1940,restricted,Famous cave paintings depicting animals and human figures from the Upper Paleolithic period
+Jericho,31.8709,35.4444,Various periods,9600 BC-present,tell_settlement,continuous_habitation,false,258,1868,ongoing,One of the oldest continuously inhabited cities with evidence of early agriculture
+Çayönü,37.9894,40.0394,Pre-Pottery Neolithic,8500-7500 BC,settlement,early_agriculture,false,550,1964,ongoing,Important site showing transition from hunting-gathering to agriculture
+Troy,39.9576,26.2311,Bronze Age Anatolia,3000-500 BC,city,homeric_legends,true,31,1870,ongoing,Legendary city of Homer's Iliad discovered by Heinrich Schliemann
+Harappa,30.6283,72.8642,Indus Valley Civilization,2600-1900 BC,city,urban_planning,true,147,1826,ongoing,Major city of the Indus Valley Civilization with advanced drainage systems
+Mohenjo-daro,27.3244,68.1375,Indus Valley Civilization,2500-1900 BC,city,urban_sophistication,true,28,1922,ongoing,Well-planned Indus Valley city with Great Bath and sophisticated water management
+Ur,30.9625,46.1030,Sumerian,4000-400 BC,city,royal_tombs,false,7,1853,completed,Ancient Sumerian city famous for Royal Cemetery and Ziggurat of Ur
+Babylon,32.5355,44.4275,Mesopotamian,1894 BC-539 AD,city,hanging_gardens,false,28,1899,ongoing,Ancient Mesopotamian city famous for Hanging Gardens and Tower of Babel
+Memphis,29.8458,31.2500,Ancient Egypt,3100 BC-640 AD,capital_city,pharaonic_capital,true,23,1799,ongoing,Ancient capital of Egypt with pyramids and sphinx of Giza nearby
+Thebes,25.7000,32.6500,Ancient Egypt,3200 BC-30 BC,religious_center,valley_of_kings,true,108,1800s,ongoing,Religious center of ancient Egypt with Valley of the Kings and Karnak Temple
+Akrotiri,36.3563,25.4058,Minoan,3500-1627 BC,settlement,bronze_age_preservation,false,132,1867,ongoing,Minoan Bronze Age settlement preserved by volcanic ash from Thera eruption
+Knossos,35.2980,25.1630,Minoan,2700-1100 BC,palace,minoan_civilization,false,85,1878,ongoing,Largest Bronze Age archaeological site on Crete and center of Minoan civilization
+Sutton Hoo,52.0893,1.3386,Anglo-Saxon,6th-7th century AD,burial_ground,ship_burials,false,30,1939,completed,Anglo-Saxon burial ground famous for ship burial and treasure hoard
+L'Anse aux Meadows,51.5944,-55.5317,Norse Viking,1000 AD,settlement,viking_america,true,15,1960,completed,Only known Viking settlement in North America proving pre-Columbian contact
+Mesa Verde,37.2308,-108.4917,Ancestral Puebloan,600-1300 AD,cliff_dwellings,architectural_adaptation,true,2600,1888,ongoing,Spectacular cliff dwellings and mesa-top sites of Ancestral Puebloan people
+Chaco Culture,36.0619,-107.9639,Ancestral Puebloan,850-1250 AD,great_houses,ceremonial_center,true,1890,1896,ongoing,Complex of great houses and ceremonial sites in New Mexico desert
+Cahokia,38.6581,-90.0661,Mississippian,1050-1200 AD,city,largest_pre_columbian,true,123,1809,ongoing,Largest pre-Columbian settlement north of Mexico with massive earthen mounds
+Serpent Mound,39.0142,-83.4309,Adena-Hopewell,1070 AD,effigy_mound,serpent_earthwork,false,347,1846,completed,Great Serpent Mound is largest serpent effigy in the world
+Poverty Point,32.6389,-91.4086,Archaic Period,1700-1100 BC,ceremonial_complex,early_monumentalism,true,24,1953,ongoing,Massive earthwork complex showing early monument building in North America
+Watson Brake,32.8022,-92.1817,Archaic Period,3500 BC,mound_complex,earliest_mounds,false,25,1980,ongoing,Oldest known complex construction in North America predating Poverty Point
+Dholavira,23.8883,70.2131,Indus Valley Civilization,2650-2100 BC,city,water_conservation,true,283,1967,ongoing,Harappan city with sophisticated water conservation and large signboard
+Sanxingdui,30.9986,104.2086,Ancient Shu,1600-1046 BC,ritual_site,bronze_masks,false,500,1929,ongoing,Archaeological site famous for large bronze masks and unique artistic style
+Jinsha,30.6667,104.0167,Ancient Shu,1200-650 BC,settlement,gold_artifacts,false,500,2001,ongoing,Archaeological site with gold artifacts showing advanced Shu civilization
+Ban Chiang,17.3667,103.2333,Bronze Age Thailand,3600 BC-200 AD,settlement,bronze_technology,true,175,1966,ongoing,Archaeological site showing early bronze technology in Southeast Asia

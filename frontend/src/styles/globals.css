@@ -2,22 +2,337 @@
 @tailwind components;
 @tailwind utilities;
 
+/* A2A World Brand Colors */
+:root {
+  --a2a-primary: #3B82F6;
+  --a2a-primary-dark: #2563EB;
+  --a2a-primary-light: #60A5FA;
+  --a2a-secondary: #8B5CF6;
+  --a2a-secondary-dark: #7C3AED;
+  --a2a-secondary-light: #A78BFA;
+  --a2a-accent: #10B981;
+  --a2a-accent-dark: #059669;
+  --a2a-accent-light: #34D399;
+  --a2a-warning: #F59E0B;
+  --a2a-error: #EF4444;
+  --a2a-success: #10B981;
+  
+  /* Brand Grays */
+  --a2a-gray-50: #F9FAFB;
+  --a2a-gray-100: #F3F4F6;
+  --a2a-gray-200: #E5E7EB;
+  --a2a-gray-300: #D1D5DB;
+  --a2a-gray-400: #9CA3AF;
+  --a2a-gray-500: #6B7280;
+  --a2a-gray-600: #4B5563;
+  --a2a-gray-700: #374151;
+  --a2a-gray-800: #1F2937;
+  --a2a-gray-900: #111827;
+}
+
 @layer base {
   html {
-    font-family: system-ui, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    line-height: 1.6;
+  }
+
+  body {
+    @apply text-gray-900 bg-gray-50 antialiased;
+  }
+
+  /* A2A World Brand Typography */
+  .a2a-heading {
+    @apply font-bold text-gray-900 leading-tight;
+  }
+
+  .a2a-subheading {
+    @apply font-semibold text-gray-700 leading-relaxed;
+  }
+
+  .a2a-body {
+    @apply text-gray-600 leading-relaxed;
+  }
+
+  .a2a-caption {
+    @apply text-sm text-gray-500;
+  }
+
+  /* Focus styles for accessibility */
+  .a2a-focus {
+    @apply focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2;
   }
 }
 
 @layer components {
-  .card {
-    @apply bg-white rounded-lg shadow-md p-6;
+  /* A2A World Card Components */
+  .a2a-card {
+    @apply bg-white rounded-lg shadow-md p-6 border border-gray-200;
   }
   
-  .btn-primary {
-    @apply bg-primary-600 hover:bg-primary-700 text-white font-medium py-2 px-4 rounded-md transition-colors;
+  .a2a-card-elevated {
+    @apply bg-white rounded-lg shadow-lg p-6 border border-gray-200;
+  }
+
+  .a2a-card-gradient {
+    @apply bg-gradient-to-br from-blue-50 via-white to-purple-50 border border-blue-100 rounded-lg shadow-md p-6;
+  }
+
+  /* A2A World Button Components */
+  .a2a-btn {
+    @apply inline-flex items-center justify-center font-medium rounded-md transition-all duration-200 a2a-focus;
+  }
+
+  .a2a-btn-primary {
+    @apply a2a-btn bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white shadow-sm hover:shadow-md;
   }
   
-  .btn-secondary {
-    @apply bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-md transition-colors;
+  .a2a-btn-secondary {
+    @apply a2a-btn bg-gray-200 hover:bg-gray-300 active:bg-gray-400 text-gray-800 shadow-sm hover:shadow-md;
+  }
+
+  .a2a-btn-outline {
+    @apply a2a-btn border border-gray-300 bg-white hover:bg-gray-50 active:bg-gray-100 text-gray-700 shadow-sm hover:shadow-md;
+  }
+
+  .a2a-btn-ghost {
+    @apply a2a-btn hover:bg-gray-100 active:bg-gray-200 text-gray-700;
+  }
+
+  /* Button Sizes */
+  .a2a-btn-xs {
+    @apply px-2 py-1 text-xs;
+  }
+
+  .a2a-btn-sm {
+    @apply px-3 py-2 text-sm;
+  }
+
+  .a2a-btn-md {
+    @apply px-4 py-2 text-sm;
+  }
+
+  .a2a-btn-lg {
+    @apply px-6 py-3 text-base;
+  }
+
+  .a2a-btn-xl {
+    @apply px-8 py-4 text-lg;
+  }
+
+  /* A2A World Form Components */
+  .a2a-input {
+    @apply block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-400 a2a-focus sm:text-sm;
+  }
+
+  .a2a-label {
+    @apply block text-sm font-medium text-gray-700 mb-1;
+  }
+
+  .a2a-select {
+    @apply block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 a2a-focus sm:text-sm;
+  }
+
+  .a2a-textarea {
+    @apply block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-400 a2a-focus sm:text-sm;
+  }
+
+  /* A2A World Status Indicators */
+  .a2a-status-online {
+    @apply inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800;
+  }
+
+  .a2a-status-offline {
+    @apply inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800;
+  }
+
+  .a2a-status-warning {
+    @apply inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800;
+  }
+
+  .a2a-status-processing {
+    @apply inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800;
+  }
+
+  /* A2A World Loading Animations */
+  .a2a-pulse {
+    @apply animate-pulse bg-gray-200 rounded;
+  }
+
+  .a2a-spin {
+    @apply animate-spin;
+  }
+
+  .a2a-bounce {
+    @apply animate-bounce;
+  }
+
+  /* A2A World Layout Components */
+  .a2a-container {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  .a2a-container-sm {
+    @apply max-w-4xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  .a2a-section {
+    @apply py-8 sm:py-12 lg:py-16;
+  }
+
+  .a2a-divider {
+    @apply border-t border-gray-200 my-8;
+  }
+
+  /* A2A World Chart Watermark */
+  .a2a-watermark {
+    @apply absolute pointer-events-none opacity-10 hover:opacity-30 transition-opacity;
+  }
+
+  /* A2A World Brand Gradients */
+  .a2a-gradient-primary {
+    background: linear-gradient(135deg, var(--a2a-primary) 0%, var(--a2a-secondary) 100%);
+  }
+
+  .a2a-gradient-success {
+    background: linear-gradient(135deg, var(--a2a-accent) 0%, var(--a2a-primary) 100%);
+  }
+
+  .a2a-gradient-subtle {
+    background: linear-gradient(135deg, var(--a2a-gray-50) 0%, var(--a2a-gray-100) 100%);
+  }
+
+  /* A2A World Hover Effects */
+  .a2a-hover-lift {
+    @apply transition-all duration-200 hover:shadow-lg hover:-translate-y-1;
+  }
+
+  .a2a-hover-glow {
+    @apply transition-all duration-200 hover:shadow-lg hover:shadow-blue-200;
+  }
+}
+
+@layer utilities {
+  /* A2A World Brand Text Colors */
+  .text-a2a-primary {
+    color: var(--a2a-primary);
+  }
+
+  .text-a2a-secondary {
+    color: var(--a2a-secondary);
+  }
+
+  .text-a2a-accent {
+    color: var(--a2a-accent);
+  }
+
+  /* A2A World Brand Background Colors */
+  .bg-a2a-primary {
+    background-color: var(--a2a-primary);
+  }
+
+  .bg-a2a-secondary {
+    background-color: var(--a2a-secondary);
+  }
+
+  .bg-a2a-accent {
+    background-color: var(--a2a-accent);
+  }
+
+  /* A2A World Brand Border Colors */
+  .border-a2a-primary {
+    border-color: var(--a2a-primary);
+  }
+
+  .border-a2a-secondary {
+    border-color: var(--a2a-secondary);
+  }
+
+  .border-a2a-accent {
+    border-color: var(--a2a-accent);
+  }
+
+  /* A2A World Typography Utilities */
+  .font-a2a-display {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-weight: 700;
+  }
+
+  .font-a2a-body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-weight: 400;
+  }
+
+  /* A2A World Scrollbar Styling */
+  .a2a-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: var(--a2a-gray-400) var(--a2a-gray-100);
+  }
+
+  .a2a-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .a2a-scrollbar::-webkit-scrollbar-track {
+    background: var(--a2a-gray-100);
+    border-radius: 3px;
+  }
+
+  .a2a-scrollbar::-webkit-scrollbar-thumb {
+    background: var(--a2a-gray-400);
+    border-radius: 3px;
+  }
+
+  .a2a-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: var(--a2a-gray-500);
+  }
+}
+
+/* Dark mode support (for future enhancement) */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --a2a-primary: #60A5FA;
+    --a2a-primary-dark: #3B82F6;
+    --a2a-primary-light: #93C5FD;
+  }
+}
+
+/* Print styles for A2A World exports */
+@media print {
+  .a2a-no-print {
+    display: none !important;
+  }
+
+  .a2a-print-only {
+    display: block !important;
+  }
+
+  body {
+    @apply text-gray-900 bg-white;
+  }
+
+  .a2a-card {
+    @apply shadow-none border border-gray-300;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  :root {
+    --a2a-primary: #0056b3;
+    --a2a-secondary: #6f42c1;
+    --a2a-accent: #0d7749;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .a2a-spin,
+  .a2a-bounce,
+  .a2a-pulse {
+    animation: none !important;
+  }
+
+  .a2a-hover-lift {
+    @apply transform-none;
   }
 }
