@@ -68,9 +68,119 @@ docker-compose exec postgres psql -U a2a_user -d a2a_world -f /docker-entrypoint
 ```
 
 4. Access the platform:
-   - **Web Dashboard**: http://localhost:3000
-   - **API Documentation**: http://localhost:8000/docs
-   - **API Health**: http://localhost:8000/health
+    - **Web Dashboard**: http://localhost:3000
+    - **API Documentation**: http://localhost:8000/docs
+    - **API Health**: http://localhost:8000/health
+
+## Usage
+
+### Quick Start Guide
+
+Once the platform is running, follow these steps to start discovering patterns:
+
+#### 1. Upload Data
+- Navigate to the **Data** section in the web dashboard
+- Upload KML, GeoJSON, or CSV files containing geospatial data
+- The system will automatically parse and store your data in the PostGIS database
+
+#### 2. Configure Agents
+- Go to the **Agents** section to view available agent types
+- Start pattern discovery agents for your uploaded datasets
+- Monitor agent status and health through the dashboard
+
+#### 3. Run Pattern Discovery
+- Select datasets from the **Patterns** section
+- Choose clustering parameters (HDBSCAN recommended)
+- Execute pattern discovery and wait for results
+- View discovered patterns on interactive maps
+
+#### 4. Validate Results
+- Use the validation dashboard to assess pattern significance
+- Review statistical metrics and confidence scores
+- Generate AI-powered narratives explaining discovered patterns
+
+### API Usage Examples
+
+#### List Available Agents
+```bash
+curl -X GET "http://localhost:8000/api/v1/agents/" \
+  -H "accept: application/json"
+```
+
+#### Start a Pattern Discovery Agent
+```bash
+curl -X POST "http://localhost:8000/api/v1/agents/pattern-discovery-001/start" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "agent_type": "pattern_discovery",
+    "configuration": {
+      "clustering_algorithm": "hdbscan",
+      "min_cluster_size": 5
+    }
+  }'
+```
+
+#### Upload Data File
+```bash
+curl -X POST "http://localhost:8000/api/v1/data/upload" \
+  -H "accept: application/json" \
+  -H "Content-Type: multipart/form-data" \
+  -F "file=@your_data.kml"
+```
+
+#### Get Pattern Discovery Results
+```bash
+curl -X GET "http://localhost:8000/api/v1/patterns/?dataset_id=your_dataset_id" \
+  -H "accept: application/json"
+```
+
+### Agent Management
+
+#### Starting Agents
+- Use the web interface or API to start agents
+- Specify agent type and configuration parameters
+- Monitor startup progress through agent logs
+
+#### Monitoring Agents
+- View real-time metrics in the dashboard
+- Check agent health status and resource usage
+- Review task completion rates and error logs
+
+#### Scaling Agents
+- Start multiple instances of the same agent type
+- Distribute workload across available agents
+- Use Consul for automatic service discovery
+
+### Data Processing Workflow
+
+1. **Data Ingestion**: Upload files through web interface or API
+2. **Preprocessing**: Agents automatically parse and validate data
+3. **Pattern Discovery**: Apply clustering algorithms to find patterns
+4. **Validation**: Statistical analysis confirms pattern significance
+5. **Narrative Generation**: AI creates human-readable explanations
+6. **Visualization**: Interactive maps and charts display results
+
+### Configuration
+
+Create a `.env` file based on `.env.example` with your specific settings:
+
+```bash
+# Database
+DATABASE_URL=postgresql://user:password@localhost:5432/a2a_world
+
+# Redis
+REDIS_URL=redis://localhost:6379
+
+# NATS
+NATS_URL=nats://localhost:4222
+
+# Consul
+CONSUL_URL=http://localhost:8500
+CONSUL_DC=dc1
+
+# Ollama
+OLLAMA_BASE_URL=http://localhost:11434
+```
 
 ## Architecture
 

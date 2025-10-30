@@ -298,8 +298,8 @@ async def start_agent(
 @router.post("/{agent_id}/stop")
 async def stop_agent(
     agent_id: str,
-    graceful: bool = Query(True, description="Perform graceful shutdown"),
     background_tasks: BackgroundTasks,
+    graceful: bool = Query(True, description="Perform graceful shutdown"),
     db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
     """
