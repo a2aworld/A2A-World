@@ -8,13 +8,15 @@ parsing, validation, and database integration capabilities.
 from .kml_processor import KMLProcessor
 from .geojson_processor import GeoJSONProcessor
 from .csv_processor import CSVProcessor
+from .text_processor import TextProcessor
 from .geometry_validator import GeometryValidator
 from .quality_checker import QualityChecker
 
 __all__ = [
     'KMLProcessor',
-    'GeoJSONProcessor', 
+    'GeoJSONProcessor',
     'CSVProcessor',
+    'TextProcessor',
     'GeometryValidator',
     'QualityChecker'
 ]

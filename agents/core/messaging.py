@@ -313,8 +313,18 @@ class AgentMessaging:
             message_type="pattern_discovered",
             payload=pattern_data
         )
-        
+
         await self.nats.publish(self.topics["discovery"], message)
+
+    async def publish_validation(self, validation_data: Dict[str, Any]) -> None:
+        """Publish validation completion results."""
+        message = AgentMessage.create(
+            sender_id=self.agent_id,
+            message_type="validation_completed",
+            payload=validation_data
+        )
+
+        await self.nats.publish(self.topics["validation"], message)
     
     async def request_validation(self, pattern_id: str, pattern_data: Dict[str, Any]) -> Optional[AgentMessage]:
         """Request pattern validation from validation agents."""

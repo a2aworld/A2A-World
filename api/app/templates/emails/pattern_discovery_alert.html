@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A2A World - Pattern Discovery Alert</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #f8f9fa;
+        }
+        .container {
+            background-color: white;
+            margin: 20px;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px 8px 0 0;
+            text-align: center;
+            margin: -30px -30px 20px -30px;
+        }
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .alert-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+            text-transform: uppercase;
+            background-color: #ff4757;
+            color: white;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        .content {
+            margin: 20px 0;
+        }
+        .pattern-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .pattern-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .pattern-details {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        .confidence-indicator {
+            display: inline-block;
+            width: 100%;
+            height: 8px;
+            background-color: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #28a745, #ffc107, #dc3545);
+        }
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .metric-item {
+            text-align: center;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 6px;
+        }
+        .metric-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #495057;
+        }
+        .metric-label {
+            font-size: 11px;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .insights-list {
+            background-color: #e7f3ff;
+            border-left: 4px solid #007bff;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .insights-list h4 {
+            margin-top: 0;
+            color: #007bff;
+        }
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #dee2e6;
+            text-align: center;
+            color: #6c757d;
+            font-size: 14px;
+        }
+        .action-button {
+            display: inline-block;
+            background-color: #007bff;
+            color: white;
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 6px;
+            margin: 10px 5px;
+            font-weight: 500;
+        }
+        .action-button:hover {
+            background-color: #0056b3;
+        }
+        .secondary-button {
+            background-color: #6c757d;
+        }
+        .secondary-button:hover {
+            background-color: #545b62;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">🔍 A2A World Platform</div>
+            <h1>Pattern Discovery Alert</h1>
+            <div class="alert-badge">New Pattern Found</div>
+        </div>
+
+        <div class="content">
+            <p>Dear A2A World researcher,</p>
+
+            <p>Our AI agents have discovered a significant pattern in the archaeological and cultural data. This could represent an important finding that requires your attention.</p>
+
+            <div class="pattern-card">
+                <div class="pattern-title">{{ pattern_title }}</div>
+                <p>{{ pattern_description }}</p>
+            </div>
+
+            <div class="pattern-details">
+                <h3>Pattern Details</h3>
+                <table style="width: 100%; border-collapse: collapse;">
+                    <tr>
+                        <td style="padding: 8px; font-weight: bold;">Pattern ID:</td>
+                        <td style="padding: 8px;">{{ pattern_id }}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px; font-weight: bold;">Discovery Time:</td>
+                        <td style="padding: 8px;">{{ discovered_at }}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px; font-weight: bold;">Data Source:</td>
+                        <td style="padding: 8px;">{{ data_source }}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px; font-weight: bold;">Pattern Type:</td>
+                        <td style="padding: 8px;">{{ pattern_type }}</td>
+                    </tr>
+                </table>
+
+                <h4>Confidence Level</h4>
+                <div class="confidence-indicator">
+                    <div class="confidence-fill" style="width: {{ confidence }}%;"></div>
+                </div>
+                <p style="text-align: center; font-size: 14px; color: #6c757d;">
+                    {{ confidence }}% confidence - {{ confidence_level }}
+                </p>
+            </div>
+
+            {% if metrics %}
+            <h3>Pattern Metrics</h3>
+            <div class="metrics-grid">
+                {% for metric in metrics %}
+                <div class="metric-item">
+                    <div class="metric-value">{{ metric.value }}</div>
+                    <div class="metric-label">{{ metric.label }}</div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% if insights %}
+            <div class="insights-list">
+                <h4>Key Insights</h4>
+                <ul>
+                    {% for insight in insights %}
+                    <li>{{ insight }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            {% if related_patterns %}
+            <h3>Related Patterns</h3>
+            <ul>
+                {% for pattern in related_patterns %}
+                <li><strong>{{ pattern.title }}</strong> - {{ pattern.description }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+
+            <p>This pattern discovery may have significant implications for our understanding of ancient civilizations and cultural connections.</p>
+
+            <div style="text-align: center; margin: 30px 0;">
+                <a href="{{ analysis_url }}" class="action-button">Analyze Pattern</a>
+                <a href="{{ dashboard_url }}" class="action-button secondary-button">View in Dashboard</a>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>This alert was generated automatically by the A2A World Pattern Discovery System.</p>
+            <p>For questions about this discovery, please contact the research team.</p>
+            <p>&copy; 2024 A2A World Platform. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

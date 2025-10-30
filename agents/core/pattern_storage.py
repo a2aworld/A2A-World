@@ -435,4 +435,87 @@ class PatternStorage:
                 
         except Exception as e:
             self.logger.error(f"Failed to validate pattern {pattern_id}: {e}")
-            return False
+    async def store_protocol_result(self, protocol_result: Dict[str, Any]) -> str:
+        """
+        Store multidisciplinary protocol results in the database.
+
+        Args:
+            protocol_result: Protocol execution results from agent
+
+        Returns:
+            Protocol result ID if successful, empty string if failed
+        """
+        try:
+            with get_db_session() as db:
+                # Import multidisciplinary protocol models
+                from database.models.multidisciplinary_protocols import (
+                    MultidisciplinaryProtocol, ProtocolComponent, ProtocolCrossCorrelation
+                )
+
+                # Create main protocol record
+                protocol = MultidisciplinaryProtocol(
+                    protocol_type=protocol_result.get("protocol_type"),
+                    protocol_name=f"{protocol_result.get('protocol_type', 'unknown').replace('_', ' ').title()} Analysis",
+                    agent_id=protocol_result.get("agent_id"),
+                    task_id=protocol_result.get("task_id"),
+                    execution_timestamp=datetime.fromisoformat(protocol_result.get("timestamp")) if protocol_result.get("timestamp") else datetime.utcnow(),
+                    completion_status="completed",
+                    results=protocol_result.get("results", {}),
+                    metadata=protocol_result.get("metadata", {}),
+                    performance_metrics={},
+                    cross_disciplinary_links={},
+                    integration_score=0.0,
+                    validation_status="pending",
+                    quality_score=0.0,
+                    reproducibility_score=0.0
+                )
+
+                db.add(protocol)
+                db.flush()  # Get the protocol ID
+
+                # Store protocol components if available
+                results = protocol_result.get("results", {})
+                if isinstance(results, dict):
+                    # Store significant findings as components
+                    significant_items = []
+
+                    # Extract different types of significant results
+                    if "significant_alignments" in results:
+                        significant_items.extend(results["significant_alignments"])
+                    if "significant_patterns" in results:
+                        significant_items.extend(results["significant_patterns"])
+                    if "significant_correlations" in results:
+                        significant_items.extend(results["significant_correlations"])
+                    if "significant_mappings" in results:
+                        significant_items.extend(results["significant_mappings"])
+
+                    for item in significant_items[:10]:  # Limit to 10 most significant
+                        if isinstance(item, dict):
+                            component = ProtocolComponent(
+                                protocol_id=protocol.id,
+                                component_type=self._determine_component_type(protocol_result.get("protocol_type")),
+                                component_name=item.get("name", item.get("id", f"Component_{uuid.uuid4()}")),
+                                component_data=item,
+                                significance_score=item.get("significance_score", 0.5),
+                                confidence_level=item.get("confidence_score", 0.5)
+                            )
+                            db.add(component)
+
+                db.commit()
+                self.logger.info(f"Stored multidisciplinary protocol result {protocol.id}")
+                return str(protocol.id)
+
+        except Exception as e:
+            self.logger.error(f"Failed to store protocol result: {e}")
+            return ""
+
+    def _determine_component_type(self, protocol_type: str) -> str:
+        """Determine component type based on protocol type."""
+        type_mapping = {
+            "archaeoastronomy_celestial_alignment": "celestial_alignment",
+            "cognitive_psychology_sacred_landscapes": "cognitive_pattern",
+            "environmental_mythology_determinants": "environmental_correlation",
+            "artistic_motif_diffusion_cultural_contact": "artistic_motif",
+            "mythological_geography_classical_literature": "geographical_reference"
+        }
+        return type_mapping.get(protocol_type, "validation_result")

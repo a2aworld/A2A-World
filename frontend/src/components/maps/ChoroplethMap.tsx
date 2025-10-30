@@ -27,6 +27,14 @@ export interface ColorScale {
   colors: string[];
 }
 
+export interface ValidationOverlay {
+  id: string;
+  type: 'cultural' | 'ethical' | 'statistical';
+  score: number;
+  issues: string[];
+  recommendations: string[];
+}
+
 export interface ChoroplethMapProps {
   data: ChoroplethData[];
   title?: string;
@@ -39,11 +47,15 @@ export interface ChoroplethMapProps {
   valueProperty?: string;
   showLegend?: boolean;
   showTooltip?: boolean;
+  enable3D?: boolean;
+  validationOverlays?: ValidationOverlay[];
+  showValidationLayers?: boolean;
   className?: string;
   loading?: boolean;
   error?: string;
   onFeatureClick?: (feature: ChoroplethData) => void;
   onFeatureHover?: (feature: ChoroplethData | null) => void;
+  onValidationClick?: (overlay: ValidationOverlay) => void;
 }
 
 const DEFAULT_COLOR_SCALE: ColorScale = {
@@ -130,7 +142,7 @@ const FitBoundsControl: React.FC<{ data: ChoroplethData[] }> = ({ data }) => {
 const Legend: React.FC<{ colorScale: ColorScale }> = ({ colorScale }) => {
   const { min, max, colors } = colorScale;
   const steps = colors.length;
-  
+
   return (
     <div className="absolute bottom-4 left-4 bg-white p-3 rounded-lg shadow-lg z-[1000]">
       <h4 className="text-sm font-medium text-gray-900 mb-2">Value Scale</h4>
@@ -139,7 +151,7 @@ const Legend: React.FC<{ colorScale: ColorScale }> = ({ colorScale }) => {
           const value = min + (max - min) * (index / (steps - 1));
           return (
             <div key={index} className="flex items-center space-x-2">
-              <div 
+              <div
                 className="w-4 h-4 border border-gray-300 rounded"
                 style={{ backgroundColor: color }}
               />
@@ -150,6 +162,73 @@ const Legend: React.FC<{ colorScale: ColorScale }> = ({ colorScale }) => {
           );
         })}
       </div>
+    </div>
+  );
+};
+
+// Validation overlay component
+const ValidationOverlayComponent: React.FC<{
+  overlays: ValidationOverlay[];
+  onValidationClick?: (overlay: ValidationOverlay) => void;
+}> = ({ overlays, onValidationClick }) => {
+  const getValidationColor = (type: string, score: number) => {
+    const alpha = Math.max(0.3, score);
+    switch (type) {
+      case 'cultural': return `rgba(34, 197, 94, ${alpha})`; // green
+      case 'ethical': return `rgba(239, 68, 68, ${alpha})`; // red
+      case 'statistical': return `rgba(59, 130, 246, ${alpha})`; // blue
+      default: return `rgba(156, 163, 175, ${alpha})`; // gray
+    }
+  };
+
+  return (
+    <div className="absolute top-4 right-4 bg-white p-3 rounded-lg shadow-lg z-[1000] max-w-xs">
+      <h4 className="text-sm font-medium text-gray-900 mb-2">Validation Layers</h4>
+      <div className="space-y-2 max-h-48 overflow-y-auto">
+        {overlays.map((overlay) => (
+          <div
+            key={overlay.id}
+            className="p-2 border rounded cursor-pointer hover:bg-gray-50"
+            onClick={() => onValidationClick?.(overlay)}
+          >
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-medium capitalize">{overlay.type}</span>
+              <div
+                className="w-3 h-3 rounded"
+                style={{ backgroundColor: getValidationColor(overlay.type, overlay.score) }}
+              />
+            </div>
+            <div className="text-xs text-gray-600">
+              Score: {(overlay.score * 100).toFixed(0)}%
+            </div>
+            {overlay.issues.length > 0 && (
+              <div className="text-xs text-red-600 mt-1">
+                {overlay.issues.length} issue{overlay.issues.length !== 1 ? 's' : ''}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// 3D Toggle component
+const ViewToggle: React.FC<{
+  is3D: boolean;
+  onToggle: () => void;
+}> = ({ is3D, onToggle }) => {
+  return (
+    <div className="absolute top-4 left-4 bg-white p-2 rounded-lg shadow-lg z-[1000]">
+      <button
+        onClick={onToggle}
+        className="flex items-center space-x-2 px-3 py-1 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded"
+      >
+        <span>{is3D ? '2D' : '3D'}</span>
+        <div className={`w-8 h-4 rounded-full transition-colors ${is3D ? 'bg-blue-600' : 'bg-gray-300'}`}>
+          <div className={`w-3 h-3 bg-white rounded-full transition-transform ${is3D ? 'translate-x-4' : 'translate-x-0.5'}`} />
+        </div>
+      </button>
     </div>
   );
 };
@@ -166,13 +245,18 @@ export function ChoroplethMap({
   valueProperty = 'value',
   showLegend = true,
   showTooltip = true,
+  enable3D = false,
+  validationOverlays = [],
+  showValidationLayers = true,
   className,
   loading = false,
   error,
   onFeatureClick,
-  onFeatureHover
+  onFeatureHover,
+  onValidationClick
 }: ChoroplethMapProps) {
   const geoJsonRef = useRef<LeafletGeoJSON>(null);
+  const [is3DView, setIs3DView] = React.useState(enable3D);
 
   const processedColorScale = useMemo(() => {
     if (!data || data.length === 0) return colorScale;
@@ -323,30 +407,56 @@ export function ChoroplethMap({
       )}
       
       <div className="relative border rounded-lg overflow-hidden" style={{ height, width }}>
-        <MapContainer
-          center={center}
-          zoom={zoom}
-          style={{ height: '100%', width: '100%' }}
-          zoomControl={true}
-        >
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
-          
-          {geoJsonData && (
-            <GeoJSON
-              ref={geoJsonRef}
-              data={geoJsonData}
-              onEachFeature={onEachFeature}
+        {enable3D && (
+          <ViewToggle is3D={is3DView} onToggle={() => setIs3DView(!is3DView)} />
+        )}
+
+        {is3DView && enable3D ? (
+          // 3D Terrain View
+          <div className="w-full h-full">
+            {/* For now, show a placeholder - in a real implementation, you'd integrate TerrainMap3D here */}
+            <div className="w-full h-full bg-gradient-to-b from-blue-200 to-green-200 flex items-center justify-center">
+              <div className="text-center text-white">
+                <div className="text-4xl mb-4">🌍</div>
+                <p className="text-lg font-medium">3D Terrain View</p>
+                <p className="text-sm opacity-75">Interactive elevation-based visualization</p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          // 2D Map View
+          <MapContainer
+            center={center}
+            zoom={zoom}
+            style={{ height: '100%', width: '100%' }}
+            zoomControl={true}
+          >
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
-          )}
-          
-          <FitBoundsControl data={data} />
-        </MapContainer>
-        
-        {showLegend && (
+
+            {geoJsonData && (
+              <GeoJSON
+                ref={geoJsonRef}
+                data={geoJsonData}
+                onEachFeature={onEachFeature}
+              />
+            )}
+
+            <FitBoundsControl data={data} />
+          </MapContainer>
+        )}
+
+        {showLegend && !is3DView && (
           <Legend colorScale={processedColorScale} />
+        )}
+
+        {showValidationLayers && validationOverlays.length > 0 && (
+          <ValidationOverlayComponent
+            overlays={validationOverlays}
+            onValidationClick={onValidationClick}
+          />
         )}
       </div>
     </div>

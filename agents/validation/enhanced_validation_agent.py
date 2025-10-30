@@ -32,6 +32,10 @@ from .statistical_validation_extended import (
     SpatialStatistics, SignificanceClassifier, StatisticalReports
 )
 
+# Import cultural and ethical validation components
+from .cultural_validation import CulturalRelevanceValidator, MythologicalContextAnalyzer
+from .ethical_validation import HumanFlourishingValidator, BiasDiversityAssessor
+
 
 class EnhancedValidationAgent(BaseAgent):
     """
@@ -78,7 +82,13 @@ class EnhancedValidationAgent(BaseAgent):
         
         self.significance_classifier = SignificanceClassifier()
         self.statistical_reports = StatisticalReports()
-        
+
+        # Cultural and ethical validation components
+        self.cultural_validator = CulturalRelevanceValidator()
+        self.mythological_analyzer = MythologicalContextAnalyzer()
+        self.ethical_validator = HumanFlourishingValidator()
+        self.bias_assessor = BiasDiversityAssessor()
+
         # Pattern storage for database integration
         self.pattern_storage = PatternStorage()
         
@@ -91,7 +101,13 @@ class EnhancedValidationAgent(BaseAgent):
             "hotspot_analysis": self._hotspot_analysis_gi_star,
             "spatial_concentration": self._spatial_concentration_analysis,
             "pattern_significance": self._pattern_significance_classification,
-            "full_statistical_suite": self._full_statistical_validation_suite
+            "full_statistical_suite": self._full_statistical_validation_suite,
+            # Cultural and ethical validation methods
+            "cultural_relevance_check": self._cultural_relevance_validation,
+            "mythological_context_analysis": self._mythological_context_validation,
+            "human_flourishing_assessment": self._human_flourishing_validation,
+            "bias_diversity_audit": self._bias_diversity_validation,
+            "multidisciplinary_validation": self._multidisciplinary_validation
         }
         
         # Validation results cache with enhanced structure
@@ -267,7 +283,7 @@ class EnhancedValidationAgent(BaseAgent):
         """
         base_capabilities = [
             "enhanced_validation",
-            "comprehensive_statistical_analysis", 
+            "comprehensive_statistical_analysis",
             "enhanced_pattern_validation",
             "batch_pattern_validation",
             "generate_validation_report",
@@ -279,13 +295,21 @@ class EnhancedValidationAgent(BaseAgent):
             "spatial_concentration_analysis",
             "pattern_significance_classification",
             "multiple_comparison_correction",
-            "statistical_reporting"
+            "statistical_reporting",
+            # Cultural and ethical validation capabilities
+            "cultural_relevance_validation",
+            "mythological_context_analysis",
+            "human_flourishing_assessment",
+            "bias_diversity_audit",
+            "multidisciplinary_validation",
+            "cultural_sensitivity_assessment",
+            "ethical_impact_evaluation"
         ]
-        
+
         # Add method-specific capabilities
         for method in self.enhanced_validation_methods:
             base_capabilities.append(f"method_{method}")
-        
+
         return base_capabilities
     
     # Enhanced Validation Task Handlers
@@ -458,6 +482,23 @@ class EnhancedValidationAgent(BaseAgent):
                     )
                     enhanced_results["stored_validation_id"] = stored_validation_id
                     self.logger.info(f"Enhanced validation results stored with ID: {stored_validation_id}")
+
+                    # Publish validation completion event for XAI agent
+                    if self.messaging:
+                        validation_event = {
+                            "validation_id": stored_validation_id,
+                            "pattern_id": pattern_id,
+                            "validation_type": "enhanced_statistical",
+                            "overall_classification": enhanced_results.get("significance_classification", {}).get("overall_classification", "unknown"),
+                            "confidence_score": enhanced_results.get("enhanced_metrics", {}).get("reliability_score", 0.0),
+                            "significant_tests": enhanced_results.get("enhanced_metrics", {}).get("significant_tests", 0),
+                            "auto_explain": True,  # Enable automatic XAI explanation generation
+                            "timestamp": datetime.utcnow().isoformat()
+                        }
+
+                        await self.messaging.publish_validation(validation_event)
+                        self.logger.info(f"Published validation completion event for XAI processing: {stored_validation_id}")
+
                 except Exception as e:
                     self.logger.error(f"Failed to store enhanced validation results: {e}")
                     enhanced_results["storage_error"] = str(e)
@@ -760,7 +801,7 @@ class EnhancedValidationAgent(BaseAgent):
             return {"error": str(e), "analysis_type": "pattern_significance"}
     
     async def _full_statistical_validation_suite(self, coordinates: np.ndarray, values: np.ndarray,
-                                                spatial_data: List[Dict], pattern_data: Dict) -> Dict[str, Any]:
+                                                 spatial_data: List[Dict], pattern_data: Dict) -> Dict[str, Any]:
         """
         Full statistical validation suite running all available methods.
         """
@@ -770,16 +811,16 @@ class EnhancedValidationAgent(BaseAgent):
                 "statistical_results": [],
                 "individual_analyses": {}
             }
-            
+
             # Run all major analysis types
             analysis_methods = [
                 "comprehensive_morans_i",
-                "monte_carlo_validation", 
+                "monte_carlo_validation",
                 "csr_testing",
                 "hotspot_analysis",
                 "spatial_concentration"
             ]
-            
+
             for method in analysis_methods:
                 if method in self.enhanced_validation_methods and method != "full_statistical_suite":
                     try:
@@ -787,20 +828,212 @@ class EnhancedValidationAgent(BaseAgent):
                             coordinates, values, spatial_data, pattern_data
                         )
                         suite_results["individual_analyses"][method] = result
-                        
+
                         # Collect statistical results
                         if "statistical_results" in result:
                             suite_results["statistical_results"].extend(result["statistical_results"])
-                        
+
                     except Exception as e:
                         self.logger.error(f"Method {method} failed in full suite: {e}")
                         suite_results["individual_analyses"][method] = {"error": str(e)}
-            
+
             return suite_results
-            
+
         except Exception as e:
             self.logger.error(f"Full statistical validation suite failed: {e}")
             return {"error": str(e), "analysis_type": "full_statistical_suite"}
+
+    # Cultural and Ethical Validation Methods
+
+    async def _cultural_relevance_validation(self, coordinates: np.ndarray, values: np.ndarray,
+                                           spatial_data: List[Dict], pattern_data: Dict) -> Dict[str, Any]:
+        """
+        Cultural relevance validation for patterns.
+        """
+        try:
+            cultural_assessment = await self.cultural_validator.assess_cultural_relevance(
+                pattern_data, {}
+            )
+
+            return {
+                "analysis_type": "cultural_relevance",
+                "cultural_relevance_score": cultural_assessment.get("cultural_relevance_score", 0.0),
+                "sensitivity_assessment": cultural_assessment.get("sensitivity_assessment", {}),
+                "cultural_contexts": cultural_assessment.get("cultural_contexts", []),
+                "sensitivity_concerns": cultural_assessment.get("sensitivity_concerns", []),
+                "cultural_recommendations": cultural_assessment.get("cultural_recommendations", [])
+            }
+
+        except Exception as e:
+            self.logger.error(f"Cultural relevance validation failed: {e}")
+            return {"error": str(e), "analysis_type": "cultural_relevance"}
+
+    async def _mythological_context_validation(self, coordinates: np.ndarray, values: np.ndarray,
+                                             spatial_data: List[Dict], pattern_data: Dict) -> Dict[str, Any]:
+        """
+        Mythological context analysis for patterns.
+        """
+        try:
+            mythological_analysis = await self.mythological_analyzer.analyze_mythological_context(
+                pattern_data
+            )
+
+            return {
+                "analysis_type": "mythological_context",
+                "mythological_alignment_score": mythological_analysis.get("mythological_alignment_score", 0.0),
+                "identified_archetypes": mythological_analysis.get("identified_archetypes", []),
+                "symbolic_elements": mythological_analysis.get("symbolic_elements", []),
+                "cross_cultural_connections": mythological_analysis.get("cross_cultural_connections", []),
+                "mythological_significance": mythological_analysis.get("mythological_significance", "unknown")
+            }
+
+        except Exception as e:
+            self.logger.error(f"Mythological context validation failed: {e}")
+            return {"error": str(e), "analysis_type": "mythological_context"}
+
+    async def _human_flourishing_validation(self, coordinates: np.ndarray, values: np.ndarray,
+                                          spatial_data: List[Dict], pattern_data: Dict) -> Dict[str, Any]:
+        """
+        Human flourishing alignment validation.
+        """
+        try:
+            flourishing_assessment = await self.ethical_validator.assess_human_flourishing(
+                pattern_data
+            )
+
+            return {
+                "analysis_type": "human_flourishing",
+                "flourishing_score": flourishing_assessment.get("flourishing_score", 0.0),
+                "dimension_scores": flourishing_assessment.get("dimension_scores", {}),
+                "ethical_concerns": flourishing_assessment.get("ethical_concerns", []),
+                "flourishing_alignment": flourishing_assessment.get("flourishing_alignment", {}),
+                "ethical_recommendations": flourishing_assessment.get("recommendations", [])
+            }
+
+        except Exception as e:
+            self.logger.error(f"Human flourishing validation failed: {e}")
+            return {"error": str(e), "analysis_type": "human_flourishing"}
+
+    async def _bias_diversity_validation(self, coordinates: np.ndarray, values: np.ndarray,
+                                       spatial_data: List[Dict], pattern_data: Dict) -> Dict[str, Any]:
+        """
+        Bias and diversity audit for validation results.
+        """
+        try:
+            # Create validation data structure for bias audit
+            validation_data = {
+                "pattern_components": spatial_data,
+                "description": pattern_data.get("description", ""),
+                "name": pattern_data.get("name", ""),
+                "validation_methods": ["statistical", "cultural", "ethical"],
+                "statistical_results": []
+            }
+
+            bias_audit = await self.bias_assessor.audit_bias_diversity(validation_data)
+
+            return {
+                "analysis_type": "bias_diversity",
+                "diversity_score": bias_audit.get("diversity_score", 0.0),
+                "bias_score": bias_audit.get("bias_score", 1.0),
+                "diversity_dimensions": bias_audit.get("diversity_dimensions", {}),
+                "identified_biases": bias_audit.get("identified_biases", []),
+                "diversity_recommendations": bias_audit.get("diversity_recommendations", [])
+            }
+
+        except Exception as e:
+            self.logger.error(f"Bias diversity validation failed: {e}")
+            return {"error": str(e), "analysis_type": "bias_diversity"}
+
+    async def _multidisciplinary_validation(self, coordinates: np.ndarray, values: np.ndarray,
+                                          spatial_data: List[Dict], pattern_data: Dict) -> Dict[str, Any]:
+        """
+        Integrated multidisciplinary validation combining all layers.
+        """
+        try:
+            multidisciplinary_results = {
+                "analysis_type": "multidisciplinary_validation",
+                "layer_assessments": {},
+                "integrated_score": 0.0,
+                "overall_assessment": {},
+                "multidisciplinary_recommendations": []
+            }
+
+            # Run all validation layers
+            layers_to_run = [
+                "cultural_relevance_check",
+                "mythological_context_analysis",
+                "human_flourishing_assessment",
+                "bias_diversity_audit"
+            ]
+
+            layer_scores = {}
+            for layer in layers_to_run:
+                if layer in self.enhanced_validation_methods:
+                    try:
+                        result = await self.enhanced_validation_methods[layer](
+                            coordinates, values, spatial_data, pattern_data
+                        )
+                        multidisciplinary_results["layer_assessments"][layer] = result
+
+                        # Extract score based on layer type
+                        if layer == "cultural_relevance_check":
+                            layer_scores[layer] = result.get("cultural_relevance_score", 0.0)
+                        elif layer == "mythological_context_analysis":
+                            layer_scores[layer] = result.get("mythological_alignment_score", 0.0)
+                        elif layer == "human_flourishing_assessment":
+                            layer_scores[layer] = result.get("flourishing_score", 0.0)
+                        elif layer == "bias_diversity_audit":
+                            # Combine diversity and bias scores
+                            diversity = result.get("diversity_score", 0.0)
+                            bias = result.get("bias_score", 1.0)
+                            layer_scores[layer] = (diversity + bias) / 2
+
+                    except Exception as e:
+                        self.logger.error(f"Layer {layer} failed in multidisciplinary validation: {e}")
+                        multidisciplinary_results["layer_assessments"][layer] = {"error": str(e)}
+                        layer_scores[layer] = 0.0
+
+            # Calculate integrated score
+            if layer_scores:
+                multidisciplinary_results["integrated_score"] = sum(layer_scores.values()) / len(layer_scores)
+
+                # Determine overall assessment
+                integrated_score = multidisciplinary_results["integrated_score"]
+                if integrated_score >= 0.8:
+                    assessment = "excellent_multidisciplinary_alignment"
+                    recommendations = ["Pattern shows excellent multidisciplinary validation"]
+                elif integrated_score >= 0.6:
+                    assessment = "good_multidisciplinary_alignment"
+                    recommendations = ["Pattern shows good multidisciplinary validation with minor areas for improvement"]
+                elif integrated_score >= 0.4:
+                    assessment = "moderate_multidisciplinary_alignment"
+                    recommendations = ["Pattern shows moderate multidisciplinary validation - consider improvements"]
+                else:
+                    assessment = "needs_multidisciplinary_improvement"
+                    recommendations = ["Pattern requires significant multidisciplinary validation improvements"]
+
+                multidisciplinary_results["overall_assessment"] = assessment
+                multidisciplinary_results["multidisciplinary_recommendations"] = recommendations
+
+                # Collect all recommendations from layers
+                all_recommendations = []
+                for layer_result in multidisciplinary_results["layer_assessments"].values():
+                    if isinstance(layer_result, dict) and "recommendations" in layer_result:
+                        all_recommendations.extend(layer_result["recommendations"])
+                    elif isinstance(layer_result, dict) and "cultural_recommendations" in layer_result:
+                        all_recommendations.extend(layer_result["cultural_recommendations"])
+                    elif isinstance(layer_result, dict) and "ethical_recommendations" in layer_result:
+                        all_recommendations.extend(layer_result["ethical_recommendations"])
+                    elif isinstance(layer_result, dict) and "diversity_recommendations" in layer_result:
+                        all_recommendations.extend(layer_result["diversity_recommendations"])
+
+                multidisciplinary_results["multidisciplinary_recommendations"].extend(all_recommendations[:5])  # Limit to top 5
+
+            return multidisciplinary_results
+
+        except Exception as e:
+            self.logger.error(f"Multidisciplinary validation failed: {e}")
+            return {"error": str(e), "analysis_type": "multidisciplinary_validation"}
     
     # Helper Methods
     

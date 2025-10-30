@@ -30,6 +30,8 @@ from agents.core.messaging import AgentMessage
 from agents.core.task_queue import Task
 from agents.core.pattern_storage import PatternStorage
 from agents.discovery.clustering import GeospatialHDBSCAN, SpatialStatistics, PatternSignificanceTest
+from agents.discovery.marl_agents import MARLParameterOptimizer, CollaborativeMARLSystem
+from database.models.patterns import MARLParameters, MARLParameterEvaluation, MARLTrainingSession
 
 
 class PatternDiscoveryAgent(BaseAgent):
@@ -84,8 +86,14 @@ class PatternDiscoveryAgent(BaseAgent):
             min_cluster_size=self.min_cluster_size,
             min_samples=self.min_samples
         )
-        
-        self.logger.info(f"PatternDiscoveryAgent {self.agent_id} initialized with database integration")
+
+        # MARL parameter optimization system
+        self.marl_optimizer = None
+        self.marl_enabled = True  # Enable MARL by default
+        self.parameter_cache = {}  # Cache learned parameters
+        self.marl_training_active = False
+
+        self.logger.info(f"PatternDiscoveryAgent {self.agent_id} initialized with database integration and MARL support")
     
     async def process(self) -> None:
         """
@@ -141,6 +149,22 @@ class PatternDiscoveryAgent(BaseAgent):
             queue_group="discovery-parsed"
         )
         self.subscription_ids.append(parsed_sub_id)
+
+        # Subscribe to MARL training requests
+        marl_train_sub_id = await self.nats_client.subscribe(
+            "agents.discovery.marl.train",
+            self._handle_marl_training_request,
+            queue_group="marl-training"
+        )
+        self.subscription_ids.append(marl_train_sub_id)
+
+        # Subscribe to MARL parameter optimization requests
+        marl_opt_sub_id = await self.nats_client.subscribe(
+            "agents.discovery.marl.optimize",
+            self._handle_marl_optimization_request,
+            queue_group="marl-optimization"
+        )
+        self.subscription_ids.append(marl_opt_sub_id)
     
     async def handle_task(self, task: Task) -> None:
         """
@@ -213,6 +237,13 @@ class PatternDiscoveryAgent(BaseAgent):
         if total_processed > 0:
             error_rate = self.discovery_errors / total_processed
         
+        marl_metrics = {
+            "marl_enabled": self.marl_enabled,
+            "marl_optimizer_initialized": self.marl_optimizer is not None,
+            "marl_training_active": self.marl_training_active,
+            "parameter_cache_size": len(self.parameter_cache)
+        }
+
         return {
             "patterns_discovered": self.patterns_discovered,
             "significant_patterns": self.significant_patterns,
@@ -222,7 +253,8 @@ class PatternDiscoveryAgent(BaseAgent):
             "significance_rate": significance_rate,
             "error_rate": error_rate,
             "cache_size": len(self.pattern_cache),
-            "available_algorithms": len(self.clustering_algorithms)
+            "available_algorithms": len(self.clustering_algorithms),
+            "marl_metrics": marl_metrics
         }
     
     def _get_capabilities(self) -> List[str]:
@@ -237,7 +269,11 @@ class PatternDiscoveryAgent(BaseAgent):
             "cluster_analysis",
             "hotspot_detection",
             "density_clustering",
-            "spatial_clustering"
+            "spatial_clustering",
+            "marl_optimization",
+            "adaptive_clustering",
+            "reinforcement_learning",
+            "parameter_tuning"
         ]
         
         # Add algorithm-specific capabilities
@@ -328,8 +364,23 @@ class PatternDiscoveryAgent(BaseAgent):
                         "spatial_statistics_included": True
                     }
                 }, self.agent_id)
-                
+
                 self.logger.info(f"Stored patterns in database with ID: {pattern_id}")
+
+                # Publish pattern discovery event for XAI agent
+                if self.messaging:
+                    discovery_event = {
+                        "pattern_id": pattern_id,
+                        "patterns_found": len(patterns),
+                        "algorithm_used": algorithm,
+                        "confidence_score": sum(p.get("confidence_level", 0) for p in patterns) / len(patterns),
+                        "significant_patterns": len([p for p in patterns if p.get("significant", False)]),
+                        "auto_explain": True,  # Enable automatic XAI explanation generation
+                        "timestamp": datetime.utcnow().isoformat()
+                    }
+
+                    await self.messaging.publish_discovery(discovery_event)
+                    self.logger.info(f"Published pattern discovery event for XAI processing: {pattern_id}")
             
             result = {
                 "dataset_id": dataset_id,
@@ -954,43 +1005,54 @@ class PatternDiscoveryAgent(BaseAgent):
     
     async def _perform_enhanced_clustering(self, data: List[Dict[str, Any]], algorithm: str) -> Dict[str, Any]:
         """
-        Perform enhanced clustering with geospatial optimization.
+        Perform enhanced clustering with geospatial optimization and MARL parameter tuning.
         """
         try:
             if not data:
                 return {"error": "No data provided", "clusters": []}
-            
+
             # Convert to DataFrame for processing
             df = pd.DataFrame(data)
-            
+
             # Extract features for clustering
             features = []
             coordinates = []
-            
+
             if "latitude" in df.columns and "longitude" in df.columns:
                 features.extend(["latitude", "longitude"])
                 coordinates = df[["latitude", "longitude"]].values
-            
+
             # Add other numerical features
             for col in df.columns:
                 if col not in features and col not in ["id", "name", "description", "site_type", "cultural_context"]:
                     if pd.api.types.is_numeric_dtype(df[col]):
                         features.append(col)
-            
+
             if not features:
                 return {"error": "No suitable features for clustering", "clusters": []}
-            
+
             X = df[features].values
-            
+
             # Handle missing values
             if np.isnan(X).any():
                 X = np.nan_to_num(X)
-            
-            # Use enhanced HDBSCAN clustering
+
+            # Get MARL-optimized parameters if available
+            optimized_params = await self._get_marl_parameters(data, len(features))
+
+            # Use enhanced HDBSCAN clustering with optimized parameters
             if algorithm == "hdbscan" and CLUSTERING_LIBS_AVAILABLE:
-                self.logger.info("Using enhanced geospatial HDBSCAN clustering")
+                self.logger.info("Using enhanced geospatial HDBSCAN clustering with MARL optimization")
+
+                # Apply optimized parameters
+                if optimized_params:
+                    self.hdbscan_clusterer.min_cluster_size = optimized_params.get('min_cluster_size', self.min_cluster_size)
+                    self.hdbscan_clusterer.min_samples = optimized_params.get('min_samples', self.min_samples)
+                    self.hdbscan_clusterer.cluster_selection_epsilon = optimized_params.get('cluster_selection_epsilon', 0.0)
+                    self.logger.info(f"Using MARL-optimized parameters: {optimized_params}")
+
                 cluster_labels = self.hdbscan_clusterer.fit_predict(X, coordinates)
-                
+
                 # Get clustering quality metrics
                 try:
                     if len(set(cluster_labels)) > 1:
@@ -999,20 +1061,22 @@ class PatternDiscoveryAgent(BaseAgent):
                         silhouette = -1.0
                 except:
                     silhouette = -1.0
-                
+
                 cluster_info = {
                     "probabilities": getattr(self.hdbscan_clusterer, 'probabilities_', []),
                     "outlier_scores": getattr(self.hdbscan_clusterer, 'outlier_scores_', []),
-                    "silhouette_score": silhouette
+                    "silhouette_score": silhouette,
+                    "marl_optimized": optimized_params is not None,
+                    "optimized_parameters": optimized_params
                 }
             else:
                 # Fall back to original clustering
                 return await self._perform_clustering(data, algorithm)
-            
+
             # Organize results with enhanced spatial analysis
             clusters = self._organize_clusters_enhanced(data, cluster_labels, features, coordinates)
-            
-            return {
+
+            result = {
                 "algorithm": algorithm,
                 "features_used": features,
                 "cluster_labels": cluster_labels.tolist(),
@@ -1020,9 +1084,16 @@ class PatternDiscoveryAgent(BaseAgent):
                 "n_clusters": len(set(cluster_labels)) - (1 if -1 in cluster_labels else 0),
                 "n_noise": np.sum(cluster_labels == -1),
                 "cluster_info": cluster_info,
-                "spatial_analysis_included": True
+                "spatial_analysis_included": True,
+                "marl_optimization_used": optimized_params is not None
             }
-            
+
+            # Store parameter performance for future learning
+            if optimized_params:
+                await self._store_parameter_performance(data, optimized_params, result)
+
+            return result
+
         except Exception as e:
             self.logger.error(f"Enhanced clustering failed: {e}")
             return {"error": str(e), "clusters": []}
@@ -1193,6 +1264,321 @@ class PatternDiscoveryAgent(BaseAgent):
                 "patterns": [],
                 "pattern_count": 0
             }
+
+    async def _get_marl_parameters(self, data: List[Dict[str, Any]], feature_count: int) -> Optional[Dict[str, float]]:
+        """
+        Get MARL-optimized parameters for the given dataset.
+
+        Args:
+            data: Dataset for clustering
+            feature_count: Number of features in the dataset
+
+        Returns:
+            Optimized parameters or None if not available
+        """
+        if not self.marl_enabled:
+            return None
+
+        try:
+            # Create dataset signature for caching
+            dataset_id = f"dataset_{len(data)}_{feature_count}_{hash(str(sorted(data[:5], key=lambda x: str(x)))) % 10000}"
+
+            # Check cache first
+            if dataset_id in self.parameter_cache:
+                cached_params = self.parameter_cache[dataset_id]
+                self.logger.debug(f"Using cached MARL parameters for dataset {dataset_id}")
+                return cached_params
+
+            # Check database for learned parameters
+            if hasattr(self, 'db_session') and self.db_session:
+                marl_params = await self._get_stored_marl_parameters(dataset_id)
+                if marl_params:
+                    self.parameter_cache[dataset_id] = marl_params
+                    return marl_params
+
+            # Initialize MARL optimizer if needed
+            if not self.marl_optimizer:
+                await self._initialize_marl_optimizer()
+
+            # Request parameter optimization if optimizer is available
+            if self.marl_optimizer and not self.marl_training_active:
+                try:
+                    optimization_result = await self.marl_optimizer.predict_optimal_parameters(data)
+                    if "optimal_parameters" in optimization_result:
+                        params = optimization_result["optimal_parameters"]
+                        self.parameter_cache[dataset_id] = params
+
+                        # Store in database for future use
+                        await self._store_marl_parameters(dataset_id, params, optimization_result)
+
+                        self.logger.info(f"Obtained MARL-optimized parameters for dataset {dataset_id}")
+                        return params
+                except Exception as e:
+                    self.logger.warning(f"MARL parameter optimization failed: {e}")
+
+            return None
+
+        except Exception as e:
+            self.logger.warning(f"Failed to get MARL parameters: {e}")
+            return None
+
+    async def _initialize_marl_optimizer(self):
+        """Initialize the MARL parameter optimizer."""
+        try:
+            if not self.marl_optimizer:
+                self.marl_optimizer = MARLParameterOptimizer()
+                await self.marl_optimizer.start()
+                self.logger.info("MARL parameter optimizer initialized")
+        except Exception as e:
+            self.logger.error(f"Failed to initialize MARL optimizer: {e}")
+            self.marl_enabled = False
+
+    async def _get_stored_marl_parameters(self, dataset_id: str) -> Optional[Dict[str, float]]:
+        """Retrieve stored MARL parameters from database."""
+        try:
+            # Query for existing parameters
+            result = await self.db_session.execute(
+                self.db_session.query(MARLParameters)
+                .filter(MARLParameters.dataset_id == dataset_id)
+                .order_by(MARLParameters.performance_score.desc())
+                .limit(1)
+            )
+            marl_params = result.scalar_one_or_none()
+
+            if marl_params:
+                # Update usage count and last used timestamp
+                marl_params.usage_count += 1
+                marl_params.last_used = datetime.utcnow()
+                await self.db_session.commit()
+
+                return {
+                    'min_samples': marl_params.min_samples,
+                    'min_cluster_size': marl_params.min_cluster_size,
+                    'cluster_selection_epsilon': float(marl_params.cluster_selection_epsilon)
+                }
+
+            return None
+
+        except Exception as e:
+            self.logger.warning(f"Failed to retrieve stored MARL parameters: {e}")
+            return None
+
+    async def _store_marl_parameters(self, dataset_id: str, params: Dict[str, float],
+                                   optimization_result: Dict[str, Any]):
+        """Store MARL parameters in database."""
+        try:
+            if not hasattr(self, 'db_session') or not self.db_session:
+                return
+
+            marl_params = MARLParameters(
+                dataset_id=dataset_id,
+                algorithm="hdbscan",
+                min_samples=params['min_samples'],
+                min_cluster_size=params['min_cluster_size'],
+                cluster_selection_epsilon=params['cluster_selection_epsilon'],
+                performance_score=optimization_result.get('confidence_score', 0.0),
+                confidence_level=optimization_result.get('confidence_score', 0.0),
+                training_episodes=0,  # Will be updated when training occurs
+                convergence_achieved=False,
+                learned_by_agent=self.agent_id,
+                learning_timestamp=datetime.utcnow(),
+                last_used=datetime.utcnow(),
+                usage_count=1,
+                parameters_metadata={
+                    "optimization_method": "marl_prediction",
+                    "num_agents": optimization_result.get('num_agents', 1),
+                    "ensemble_method": optimization_result.get('ensemble_method', 'unknown')
+                }
+            )
+
+            self.db_session.add(marl_params)
+            await self.db_session.commit()
+
+            self.logger.debug(f"Stored MARL parameters for dataset {dataset_id}")
+
+        except Exception as e:
+            self.logger.warning(f"Failed to store MARL parameters: {e}")
+
+    async def _store_parameter_performance(self, data: List[Dict[str, Any]],
+                                         params: Dict[str, float],
+                                         clustering_result: Dict[str, Any]):
+        """Store parameter performance evaluation in database."""
+        try:
+            if not hasattr(self, 'db_session') or not self.db_session:
+                return
+
+            dataset_id = f"dataset_{len(data)}_{len(clustering_result.get('features_used', []))}_{hash(str(sorted(data[:5], key=lambda x: str(x)))) % 10000}"
+
+            # Find the corresponding MARL parameters record
+            result = await self.db_session.execute(
+                self.db_session.query(MARLParameters)
+                .filter(MARLParameters.dataset_id == dataset_id)
+                .order_by(MARLParameters.performance_score.desc())
+                .limit(1)
+            )
+            marl_params = result.scalar_one_or_none()
+
+            if marl_params:
+                # Create evaluation record
+                cluster_info = clustering_result.get('cluster_info', {})
+                evaluation = MARLParameterEvaluation(
+                    parameters_id=marl_params.id,
+                    evaluation_dataset=dataset_id,
+                    silhouette_score=cluster_info.get('silhouette_score', -1.0),
+                    calinski_harabasz_score=0.0,  # Not calculated in current implementation
+                    davies_bouldin_score=0.0,     # Not calculated in current implementation
+                    num_clusters_found=clustering_result.get('n_clusters', 0),
+                    noise_ratio=clustering_result.get('n_noise', 0) / len(data) if data else 1.0,
+                    pattern_quality_score=0.0,    # Would be calculated from pattern analysis
+                    spatial_coherence=0.0,        # Would be calculated from spatial analysis
+                    significance_score=0.0,       # Would be calculated from significance testing
+                    evaluation_timestamp=datetime.utcnow(),
+                    evaluation_method="clustering_performance",
+                    evaluation_metadata={
+                        "marl_optimized": cluster_info.get('marl_optimized', False),
+                        "features_used": clustering_result.get('features_used', []),
+                        "spatial_analysis_included": clustering_result.get('spatial_analysis_included', False)
+                    }
+                )
+
+                self.db_session.add(evaluation)
+                await self.db_session.commit()
+
+                self.logger.debug(f"Stored parameter performance evaluation for dataset {dataset_id}")
+
+        except Exception as e:
+            self.logger.warning(f"Failed to store parameter performance: {e}")
+
+    async def start_marl_training(self, dataset: List[Dict[str, Any]],
+                                training_config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """
+        Start MARL training on the given dataset.
+
+        Args:
+            dataset: Training dataset
+            training_config: Training configuration parameters
+
+        Returns:
+            Training initiation result
+        """
+        try:
+            if self.marl_training_active:
+                return {"error": "MARL training already active"}
+
+            if not self.marl_optimizer:
+                await self._initialize_marl_optimizer()
+
+            if not self.marl_optimizer:
+                return {"error": "Failed to initialize MARL optimizer"}
+
+            # Send training request via NATS
+            training_request = {
+                "dataset": dataset,
+                "training_config": training_config or {
+                    "timesteps_per_agent": 5000,
+                    "collaboration_rounds": 3
+                }
+            }
+
+            # Publish training request
+            if self.messaging:
+                await self.messaging.publish_training_request(training_request)
+
+            self.marl_training_active = True
+
+            return {
+                "status": "training_started",
+                "message": "MARL training initiated",
+                "training_config": training_request["training_config"]
+            }
+
+        except Exception as e:
+            self.logger.error(f"Failed to start MARL training: {e}")
+            return {"error": str(e)}
+
+    # MARL Message Handlers
+
+    async def _handle_marl_training_request(self, message: AgentMessage) -> None:
+        """Handle MARL training requests via NATS."""
+        try:
+            request_data = message.payload
+            dataset = request_data.get("dataset", [])
+            training_config = request_data.get("training_config", {})
+
+            self.logger.info(f"Received MARL training request with {len(dataset)} data points")
+
+            # Start training
+            training_result = await self.start_marl_training(dataset, training_config)
+
+            # Send response
+            response = AgentMessage.create(
+                sender_id=self.agent_id,
+                receiver_id=message.sender_id,
+                message_type="marl_training_started",
+                payload=training_result,
+                correlation_id=message.correlation_id
+            )
+
+            if message.reply_to:
+                await self.nats_client.publish(message.reply_to, response)
+
+        except Exception as e:
+            self.logger.error(f"Error handling MARL training request: {e}")
+
+            error_response = AgentMessage.create(
+                sender_id=self.agent_id,
+                receiver_id=message.sender_id,
+                message_type="marl_training_error",
+                payload={"error": str(e)},
+                correlation_id=message.correlation_id
+            )
+
+            if message.reply_to:
+                await self.nats_client.publish(message.reply_to, error_response)
+
+    async def _handle_marl_optimization_request(self, message: AgentMessage) -> None:
+        """Handle MARL parameter optimization requests via NATS."""
+        try:
+            request_data = message.payload
+            dataset = request_data.get("dataset", [])
+            dataset_id = request_data.get("dataset_id", "unknown")
+
+            self.logger.info(f"Received MARL optimization request for dataset {dataset_id}")
+
+            # Get optimized parameters
+            optimized_params = await self._get_marl_parameters(dataset, len(dataset[0]) if dataset else 0)
+
+            response_payload = {
+                "dataset_id": dataset_id,
+                "optimized_parameters": optimized_params,
+                "optimization_successful": optimized_params is not None
+            }
+
+            # Send response
+            response = AgentMessage.create(
+                sender_id=self.agent_id,
+                receiver_id=message.sender_id,
+                message_type="marl_optimization_response",
+                payload=response_payload,
+                correlation_id=message.correlation_id
+            )
+
+            if message.reply_to:
+                await self.nats_client.publish(message.reply_to, response)
+
+        except Exception as e:
+            self.logger.error(f"Error handling MARL optimization request: {e}")
+
+            error_response = AgentMessage.create(
+                sender_id=self.agent_id,
+                receiver_id=message.sender_id,
+                message_type="marl_optimization_error",
+                payload={"error": str(e), "dataset_id": message.payload.get("dataset_id")},
+                correlation_id=message.correlation_id
+            )
+
+            if message.reply_to:
+                await self.nats_client.publish(message.reply_to, error_response)
 
 
 # Main entry point for running the agent

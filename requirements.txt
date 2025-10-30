@@ -48,6 +48,11 @@ transformers==4.36.2
 torch==2.1.2
 ollama==0.1.7
 
+# NLP processing for mythological texts
+spacy==3.7.2
+nltk==3.8.1
+textblob==0.17.1
+
 # HTTP clients and utilities
 httpx==0.25.2
 aiofiles==23.2.1
@@ -102,6 +107,12 @@ pingouin==0.5.4
 
 # Clustering algorithms
 scikit-learn-extra==0.3.0
+
+# Reinforcement Learning for MARL
+stable-baselines3==2.1.0
+gymnasium==0.29.1
+ray[rllib]==2.9.0
+torch==2.1.2
 
 # Graph processing (for pattern relationships)
 networkx==3.2.1

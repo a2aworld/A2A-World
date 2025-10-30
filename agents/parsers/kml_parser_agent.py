@@ -31,7 +31,7 @@ from agents.core.task_queue import Task
 
 # Import our enhanced processors
 from .data_processors import (
-    KMLProcessor, GeoJSONProcessor, CSVProcessor, 
+    KMLProcessor, GeoJSONProcessor, CSVProcessor, TextProcessor,
     GeometryValidator, QualityChecker
 )
 
@@ -73,6 +73,7 @@ class KMLParserAgent(BaseAgent):
         self.kml_processor = KMLProcessor()
         self.geojson_processor = GeoJSONProcessor()
         self.csv_processor = CSVProcessor()
+        self.text_processor = TextProcessor()
         self.geometry_validator = GeometryValidator()
         self.quality_checker = QualityChecker()
         
@@ -86,10 +87,12 @@ class KMLParserAgent(BaseAgent):
         # Supported file formats
         self.supported_formats = {
             '.kml': 'kml',
-            '.kmz': 'kmz', 
+            '.kmz': 'kmz',
             '.geojson': 'geojson',
             '.json': 'geojson',
-            '.csv': 'csv'
+            '.csv': 'csv',
+            '.txt': 'text',
+            '.md': 'text'
         }
         
         # Database session factory
@@ -116,11 +119,14 @@ class KMLParserAgent(BaseAgent):
         try:
             # Verify parsing dependencies
             self._verify_parsing_dependencies()
-            
+
             # Create data directories if needed
             self.config.data_path.mkdir(parents=True, exist_ok=True)
             self.config.temp_path.mkdir(parents=True, exist_ok=True)
-            
+
+            # Initialize text processor
+            await self.text_processor.initialize()
+
             # Test database connection if available
             if self.db_session_factory:
                 try:
@@ -130,9 +136,9 @@ class KMLParserAgent(BaseAgent):
                 except Exception as e:
                     self.logger.warning(f"Database connection failed: {e}")
                     self.db_session_factory = None
-            
+
             self.logger.info("Enhanced KMLParserAgent initialization complete")
-            
+
         except Exception as e:
             self.logger.error(f"Failed to initialize Enhanced KMLParserAgent: {e}")
             raise
@@ -301,7 +307,7 @@ class KMLParserAgent(BaseAgent):
             # Parse based on format
             if file_format in ['kml', 'kmz']:
                 result = self.kml_processor.process_file(
-                    file_path, 
+                    file_path,
                     validate_geometry=True,
                     generate_quality_report=generate_quality_report
                 )
@@ -315,6 +321,14 @@ class KMLParserAgent(BaseAgent):
                 result = self.csv_processor.process_file(
                     file_path,
                     validate_geometry=True,
+                    generate_quality_report=generate_quality_report
+                )
+            elif file_format == 'text':
+                result = await self.text_processor.process_file(
+                    file_path,
+                    extract_entities=True,
+                    analyze_sentiment=True,
+                    cross_reference_geo=True,
                     generate_quality_report=generate_quality_report
                 )
             else:
@@ -336,23 +350,45 @@ class KMLParserAgent(BaseAgent):
                 await progress_callback({"stage": "completed", "progress": 100})
             
             # Compile final result
-            final_result = {
-                "success": True,
-                "file_path": str(file_path_obj),
-                "file_format": file_format,
-                "features_count": len(result.features),
-                "features": result.features,
-                "metadata": result.metadata,
-                "warnings": result.warnings,
-                "errors": result.errors
-            }
+            if file_format == 'text':
+                # Text processing returns different structure
+                final_result = {
+                    "success": True,
+                    "file_path": str(file_path_obj),
+                    "file_format": file_format,
+                    "text_data_count": len(result.text_data),
+                    "text_data": result.text_data,
+                    "entities_count": len(result.entities),
+                    "entities": result.entities,
+                    "sentiment_analysis": result.sentiment_analysis,
+                    "cross_references": result.cross_references,
+                    "metadata": result.metadata,
+                    "warnings": result.warnings,
+                    "errors": result.errors
+                }
+            else:
+                # Geospatial processing
+                final_result = {
+                    "success": True,
+                    "file_path": str(file_path_obj),
+                    "file_format": file_format,
+                    "features_count": len(result.features),
+                    "features": result.features,
+                    "metadata": result.metadata,
+                    "warnings": result.warnings,
+                    "errors": result.errors
+                }
             
             if result.quality_report:
                 final_result["quality_report"] = result.quality_report.to_dict()
                 self.quality_reports_generated += 1
-            
+
             self.files_processed += 1
-            self.features_extracted += len(result.features)
+            if file_format == 'text':
+                # For text files, track entities instead of features
+                self.features_extracted += len(result.entities)
+            else:
+                self.features_extracted += len(result.features)
             
             return final_result
             
@@ -652,6 +688,10 @@ class KMLParserAgent(BaseAgent):
             "kml_parser",
             "geojson_parser",
             "csv_parser",
+            "text_processor",
+            "nlp_analysis",
+            "mythological_entity_extraction",
+            "sentiment_analysis",
             "batch_processing",
             "zip_archive_processing",
             "database_integration",

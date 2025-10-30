@@ -218,4 +218,59 @@ export function usePatternUpdates() {
   return newPatterns;
 }
 
+export function useVisualizationUpdates() {
+  const [terrainUpdates, setTerrainUpdates] = useState<any[]>([]);
+  const [multidisciplinaryUpdates, setMultidisciplinaryUpdates] = useState<any[]>([]);
+  const [xaiUpdates, setXaiUpdates] = useState<any[]>([]);
+  const [validationUpdates, setValidationUpdates] = useState<any[]>([]);
+  const { socket, connected } = useWebSocket();
+
+  useEffect(() => {
+    if (!socket || !connected) return;
+
+    const handleTerrainUpdate = (message: WebSocketMessage) => {
+      if (message.type === 'terrain_update') {
+        setTerrainUpdates(prev => [message.data, ...prev.slice(0, 4)]); // Keep last 5 updates
+      }
+    };
+
+    const handleMultidisciplinaryUpdate = (message: WebSocketMessage) => {
+      if (message.type === 'multidisciplinary_update') {
+        setMultidisciplinaryUpdates(prev => [message.data, ...prev.slice(0, 4)]);
+      }
+    };
+
+    const handleXaiUpdate = (message: WebSocketMessage) => {
+      if (message.type === 'xai_update') {
+        setXaiUpdates(prev => [message.data, ...prev.slice(0, 4)]);
+      }
+    };
+
+    const handleValidationUpdate = (message: WebSocketMessage) => {
+      if (message.type === 'validation_update') {
+        setValidationUpdates(prev => [message.data, ...prev.slice(0, 4)]);
+      }
+    };
+
+    socket.on('terrain_update', handleTerrainUpdate);
+    socket.on('multidisciplinary_update', handleMultidisciplinaryUpdate);
+    socket.on('xai_update', handleXaiUpdate);
+    socket.on('validation_update', handleValidationUpdate);
+
+    return () => {
+      socket.off('terrain_update', handleTerrainUpdate);
+      socket.off('multidisciplinary_update', handleMultidisciplinaryUpdate);
+      socket.off('xai_update', handleXaiUpdate);
+      socket.off('validation_update', handleValidationUpdate);
+    };
+  }, [socket, connected]);
+
+  return {
+    terrainUpdates,
+    multidisciplinaryUpdates,
+    xaiUpdates,
+    validationUpdates,
+  };
+}
+
 export default useWebSocket;

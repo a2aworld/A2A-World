@@ -9,3 +9,4 @@ export { LineChart, type LineChartDataPoint, type LineConfig, type LineChartProp
 export { PieChart, type PieChartData, type PieChartProps } from './PieChart';
 export { HistogramChart, type HistogramBin, type HistogramProps } from './HistogramChart';
 export { ScatterPlot, type ScatterDataPoint, type ScatterPlotProps } from './ScatterPlot';
+export { ValidationCharts, type ValidationResult, type ValidationChartsProps } from './ValidationCharts';

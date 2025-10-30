@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A2A World - System Maintenance Notice</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #f8f9fa;
+        }
+        .container {
+            background-color: white;
+            margin: 20px;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #ff3838 0%, #ff9f43 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px 8px 0 0;
+            text-align: center;
+            margin: -30px -30px 20px -30px;
+        }
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .maintenance-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+            text-transform: uppercase;
+            background-color: #ff6b6b;
+            color: white;
+        }
+        .content {
+            margin: 20px 0;
+        }
+        .alert-box {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .alert-box h4 {
+            margin-top: 0;
+            color: #856404;
+        }
+        .maintenance-details {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        .maintenance-details h3 {
+            margin-top: 0;
+            color: #495057;
+        }
+        .schedule-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        .schedule-table th, .schedule-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .schedule-table th {
+            background-color: #e9ecef;
+            font-weight: 600;
+            color: #495057;
+        }
+        .impact-level {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .impact-low { background-color: #28a745; color: white; }
+        .impact-medium { background-color: #ffc107; color: #212529; }
+        .impact-high { background-color: #dc3545; color: white; }
+        .impact-critical { background-color: #6f42c1; color: white; }
+        .services-list {
+            background-color: #e7f3ff;
+            border-left: 4px solid #007bff;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .services-list h4 {
+            margin-top: 0;
+            color: #007bff;
+        }
+        .service-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .service-item:last-child {
+            border-bottom: none;
+        }
+        .service-name {
+            font-weight: 500;
+        }
+        .service-status {
+            font-size: 12px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            background-color: #6c757d;
+            color: white;
+        }
+        .service-status.available { background-color: #28a745; }
+        .service-status.maintenance { background-color: #ffc107; color: #212529; }
+        .service-status.unavailable { background-color: #dc3545; }
+        .contact-info {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .contact-info h4 {
+            margin-top: 0;
+            color: #495057;
+        }
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #dee2e6;
+            text-align: center;
+            color: #6c757d;
+            font-size: 14px;
+        }
+        .action-button {
+            display: inline-block;
+            background-color: #007bff;
+            color: white;
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 6px;
+            margin: 10px 5px;
+            font-weight: 500;
+        }
+        .action-button:hover {
+            background-color: #0056b3;
+        }
+        .secondary-button {
+            background-color: #6c757d;
+        }
+        .secondary-button:hover {
+            background-color: #545b62;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">🔧 A2A World Platform</div>
+            <h1>System Maintenance Notice</h1>
+            <div class="maintenance-badge">{{ maintenance_type }}</div>
+        </div>
+
+        <div class="content">
+            <p>Dear A2A World user,</p>
+
+            <div class="alert-box">
+                <h4>⚠️ Scheduled Maintenance</h4>
+                <p>{{ maintenance_message }}</p>
+            </div>
+
+            <div class="maintenance-details">
+                <h3>Maintenance Details</h3>
+                <table class="schedule-table">
+                    <tr>
+                        <th>Scheduled Start</th>
+                        <td>{{ maintenance_start }}</td>
+                    </tr>
+                    <tr>
+                        <th>Expected Duration</th>
+                        <td>{{ maintenance_duration }}</td>
+                    </tr>
+                    <tr>
+                        <th>Expected Completion</th>
+                        <td>{{ maintenance_end }}</td>
+                    </tr>
+                    <tr>
+                        <th>Impact Level</th>
+                        <td>
+                            <span class="impact-level impact-{{ impact_level|lower }}">
+                                {{ impact_level }}
+                            </span>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+
+            {% if affected_services %}
+            <div class="services-list">
+                <h4>Affected Services</h4>
+                {% for service in affected_services %}
+                <div class="service-item">
+                    <span class="service-name">{{ service.name }}</span>
+                    <span class="service-status {{ service.status|lower }}">{{ service.status }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% if maintenance_reason %}
+            <h3>Reason for Maintenance</h3>
+            <p>{{ maintenance_reason }}</p>
+            {% endif %}
+
+            {% if what_to_expect %}
+            <h3>What to Expect</h3>
+            <ul>
+                {% for item in what_to_expect %}
+                <li>{{ item }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+
+            {% if alternative_access %}
+            <h3>Alternative Access</h3>
+            <p>{{ alternative_access }}</p>
+            {% endif %}
+
+            <div class="contact-info">
+                <h4>Need Help?</h4>
+                <p>If you have urgent questions about this maintenance, please contact our support team.</p>
+                <p><strong>Email:</strong> support@a2aworld.ai<br>
+                <strong>Status Page:</strong> <a href="{{ status_page_url }}">status.a2aworld.ai</a></p>
+            </div>
+
+            <div style="text-align: center; margin: 30px 0;">
+                <a href="{{ status_page_url }}" class="action-button">Check System Status</a>
+                <a href="{{ dashboard_url }}" class="action-button secondary-button">Go to Dashboard</a>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>This maintenance notice was sent automatically by the A2A World System.</p>
+            <p>We apologize for any inconvenience and appreciate your understanding.</p>
+            <p>&copy; 2024 A2A World Platform. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

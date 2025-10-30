@@ -245,6 +245,82 @@ export class PatternsApi extends ApiClient {
   }
 }
 
+export class VisualizationApi extends ApiClient {
+  // 3D Terrain data
+  async getTerrainData(params?: {
+    bounds?: { north: number; south: number; east: number; west: number };
+    elevation_range?: { min: number; max: number };
+    pattern_types?: string[];
+  }) {
+    const query = new URLSearchParams();
+    if (params?.bounds) {
+      query.append('north', params.bounds.north.toString());
+      query.append('south', params.bounds.south.toString());
+      query.append('east', params.bounds.east.toString());
+      query.append('west', params.bounds.west.toString());
+    }
+    if (params?.elevation_range) {
+      query.append('elevation_min', params.elevation_range.min.toString());
+      query.append('elevation_max', params.elevation_range.max.toString());
+    }
+    if (params?.pattern_types) {
+      query.append('pattern_types', params.pattern_types.join(','));
+    }
+
+    return this.get(`/visualization/terrain${query.toString() ? `?${query.toString()}` : ''}`);
+  }
+
+  // Multidisciplinary visualization data
+  async getMultidisciplinaryData(params?: {
+    pattern_id?: string;
+    include_agents?: boolean;
+    include_validation?: boolean;
+    time_range?: { start: string; end: string };
+  }) {
+    const query = new URLSearchParams(params as any).toString();
+    return this.get(`/visualization/multidisciplinary${query ? `?${query}` : ''}`);
+  }
+
+  // XAI decision tree data
+  async getXaiData(params?: {
+    pattern_id?: string;
+    decision_tree_id?: string;
+    include_explanations?: boolean;
+  }) {
+    const query = new URLSearchParams(params as any).toString();
+    return this.get(`/visualization/xai${query ? `?${query}` : ''}`);
+  }
+
+  // Validation results data
+  async getValidationData(params?: {
+    pattern_ids?: string[];
+    validation_types?: string[];
+    time_range?: { start: string; end: string };
+  }) {
+    const query = new URLSearchParams();
+    if (params?.pattern_ids) query.append('pattern_ids', params.pattern_ids.join(','));
+    if (params?.validation_types) query.append('validation_types', params.validation_types.join(','));
+    if (params?.time_range) {
+      query.append('start_time', params.time_range.start);
+      query.append('end_time', params.time_range.end);
+    }
+
+    return this.get(`/visualization/validation${query.toString() ? `?${query.toString()}` : ''}`);
+  }
+
+  // Real-time visualization subscriptions
+  async subscribeToUpdates(visualizationType: 'terrain' | 'multidisciplinary' | 'xai' | 'validation', filters?: any) {
+    return this.post('/visualization/subscribe', {
+      type: visualizationType,
+      filters
+    });
+  }
+
+  async unsubscribeFromUpdates(subscriptionId: string) {
+    return this.post('/visualization/unsubscribe', { subscription_id: subscriptionId });
+  }
+}
+
 export class DataApi extends ApiClient {
   // Enhanced dataset management
   async getDatasets(params?: {
@@ -327,6 +403,7 @@ export const healthApi = new HealthApi();
 export const agentsApi = new AgentsApi();
 export const patternsApi = new PatternsApi();
 export const dataApi = new DataApi();
+export const visualizationApi = new VisualizationApi();
 
 // Export the main client instance for custom requests
 export const api = apiClient;

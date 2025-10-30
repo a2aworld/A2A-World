@@ -6,7 +6,7 @@ Main API router that includes all API endpoints.
 
 from fastapi import APIRouter
 
-from app.api.api_v1.endpoints import agents, patterns, data, health, validation, consensus
+from app.api.api_v1.endpoints import agents, patterns, data, health, validation, consensus, notifications
 
 api_router = APIRouter()
 
@@ -17,3 +17,4 @@ api_router.include_router(patterns.router, prefix="/patterns", tags=["patterns"]
 api_router.include_router(data.router, prefix="/data", tags=["data"])
 api_router.include_router(validation.router, prefix="/validation", tags=["validation"])
 api_router.include_router(consensus.router, prefix="/consensus", tags=["consensus"])
+api_router.include_router(notifications.router, prefix="/notifications", tags=["notifications"])

@@ -26,6 +26,13 @@ from .cultural import (
     CulturalPattern, NarrativePattern, CulturalRelationship,
     CulturalInterpretation, CulturalRelevance, LinguisticAnalysis
 )
+from .multi_layered_validation import (
+    MultiLayeredValidation, CulturalValidation, EthicalAssessment,
+    ConsensusValidation, ValidationLayerResult
+)
+from .notifications import (
+    EmailSubscription, NotificationHistory, NotificationTemplate
+)
 from .system import SystemLog
 
 # Export all models
@@ -75,7 +82,19 @@ __all__ = [
     "CulturalPattern",
     "NarrativePattern",
     "CulturalRelationship",
-    "CulturalInterpretation", 
+    "CulturalInterpretation",
     "CulturalRelevance",
     "LinguisticAnalysis",
+
+    # Multi-Layered Validation
+    "MultiLayeredValidation",
+    "CulturalValidation",
+    "EthicalAssessment",
+    "ConsensusValidation",
+    "ValidationLayerResult",
+
+    # Notifications
+    "EmailSubscription",
+    "NotificationHistory",
+    "NotificationTemplate",
 ]

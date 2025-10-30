@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A2A World - Validation Notification</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #f8f9fa;
+        }
+        .container {
+            background-color: white;
+            margin: 20px;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px 8px 0 0;
+            text-align: center;
+            margin: -30px -30px 20px -30px;
+        }
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .status-success { background-color: #28a745; color: white; }
+        .status-warning { background-color: #ffc107; color: #212529; }
+        .status-error { background-color: #dc3545; color: white; }
+        .content {
+            margin: 20px 0;
+        }
+        .details-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        .details-table th, .details-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .details-table th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            color: #495057;
+        }
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .metric-card {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .metric-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #495057;
+        }
+        .metric-label {
+            font-size: 12px;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #dee2e6;
+            text-align: center;
+            color: #6c757d;
+            font-size: 14px;
+        }
+        .action-button {
+            display: inline-block;
+            background-color: #007bff;
+            color: white;
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 6px;
+            margin: 10px 0;
+            font-weight: 500;
+        }
+        .action-button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">🌍 A2A World Platform</div>
+            <h1>Validation Results</h1>
+        </div>
+
+        <div class="content">
+            <p>Dear A2A World user,</p>
+
+            <p>A validation process has been completed for your submitted data. Here are the results:</p>
+
+            {% if validation_status == 'success' %}
+                <div class="status-badge status-success">Validation Successful</div>
+            {% elif validation_status == 'warning' %}
+                <div class="status-badge status-warning">Validation Completed with Warnings</div>
+            {% else %}
+                <div class="status-badge status-error">Validation Failed</div>
+            {% endif %}
+
+            <h3>Validation Summary</h3>
+            <table class="details-table">
+                <tr>
+                    <th>Dataset ID</th>
+                    <td>{{ dataset_id }}</td>
+                </tr>
+                <tr>
+                    <th>Validation Type</th>
+                    <td>{{ validation_type }}</td>
+                </tr>
+                <tr>
+                    <th>Completed At</th>
+                    <td>{{ completed_at }}</td>
+                </tr>
+                <tr>
+                    <th>Processing Time</th>
+                    <td>{{ processing_time }} seconds</td>
+                </tr>
+            </table>
+
+            {% if metrics %}
+            <h3>Validation Metrics</h3>
+            <div class="metrics-grid">
+                {% for metric in metrics %}
+                <div class="metric-card">
+                    <div class="metric-value">{{ metric.value }}</div>
+                    <div class="metric-label">{{ metric.label }}</div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% if issues %}
+            <h3>Issues Found</h3>
+            <ul>
+                {% for issue in issues %}
+                <li>{{ issue }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+
+            {% if recommendations %}
+            <h3>Recommendations</h3>
+            <ul>
+                {% for recommendation in recommendations %}
+                <li>{{ recommendation }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+
+            <p>You can view detailed results and take further actions by logging into your A2A World dashboard.</p>
+
+            <a href="{{ dashboard_url }}" class="action-button">View Results in Dashboard</a>
+        </div>
+
+        <div class="footer">
+            <p>This is an automated notification from the A2A World Platform.</p>
+            <p>If you have any questions, please contact our support team.</p>
+            <p>&copy; 2024 A2A World Platform. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

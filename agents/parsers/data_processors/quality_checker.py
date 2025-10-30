@@ -557,22 +557,104 @@ class QualityChecker:
     def _check_suspicious_patterns(self, record: Dict[str, Any]) -> List[str]:
         """Check for suspicious data patterns."""
         issues = []
-        
+
         # Check for null island (0, 0) coordinates
         if 'geometry' in record and record['geometry']:
             coords = record['geometry'].get('coordinates')
             if coords and len(coords) >= 2:
                 if coords[0] == 0 and coords[1] == 0:
                     issues.append("Coordinates at (0, 0) - possible data entry error")
-        
+
         # Check for very short or generic names
         name = record.get('name', '')
         if name:
             if len(name.strip()) <= 2:
                 issues.append("Name is unusually short")
-            
+
             generic_names = ['point', 'location', 'place', 'site', 'marker', 'pin']
             if name.lower().strip() in generic_names:
                 issues.append("Name appears to be generic placeholder")
-        
+
+        # Mythological data specific checks
+        issues.extend(self._check_mythological_data_quality(record))
+
+        return issues
+
+    def _check_mythological_data_quality(self, record: Dict[str, Any]) -> List[str]:
+        """Check quality of mythological data records."""
+        issues = []
+
+        # Check for mythological entities
+        entities = record.get('entities', [])
+        if isinstance(entities, list) and entities:
+            # Validate entity structure
+            for i, entity in enumerate(entities):
+                if not isinstance(entity, dict):
+                    issues.append(f"Entity {i} is not a valid dictionary")
+                    continue
+
+                if not entity.get('name'):
+                    issues.append(f"Entity {i} missing name field")
+
+                if not entity.get('entity_type'):
+                    issues.append(f"Entity {i} missing entity_type field")
+
+                confidence = entity.get('confidence', 0)
+                if not isinstance(confidence, (int, float)) or not (0 <= confidence <= 1):
+                    issues.append(f"Entity {i} has invalid confidence score: {confidence}")
+
+            # Check for entity diversity
+            entity_types = [e.get('entity_type') for e in entities if e.get('entity_type')]
+            if len(set(entity_types)) < 2 and len(entities) > 5:
+                issues.append("Limited entity type diversity - may indicate poor entity recognition")
+
+        # Check sentiment analysis
+        sentiment = record.get('sentiment')
+        if sentiment:
+            if isinstance(sentiment, dict):
+                overall = sentiment.get('overall')
+                if overall:
+                    polarity = overall.get('polarity', 0)
+                    # Extremely polarized sentiment might indicate issues
+                    if abs(polarity) > 0.8:
+                        issues.append("Extremely polarized sentiment - review text content")
+
+        # Check cross-references
+        cross_refs = record.get('cross_references', [])
+        if isinstance(cross_refs, list):
+            for i, ref in enumerate(cross_refs):
+                if not isinstance(ref, dict):
+                    issues.append(f"Cross-reference {i} is not a valid dictionary")
+                    continue
+
+                if not ref.get('text_entity'):
+                    issues.append(f"Cross-reference {i} missing text_entity field")
+
+                confidence = ref.get('confidence', 0)
+                if not isinstance(confidence, (int, float)) or not (0 <= confidence <= 1):
+                    issues.append(f"Cross-reference {i} has invalid confidence score: {confidence}")
+
+        # Check text content quality
+        content = record.get('content', '')
+        if content:
+            # Check for minimum content length
+            if len(content.strip()) < 50:
+                issues.append("Text content is very short for mythological analysis")
+
+            # Check for excessive special characters (might indicate encoding issues)
+            special_chars = len(re.findall(r'[^\w\s]', content))
+            if special_chars / len(content) > 0.3:
+                issues.append("High proportion of special characters - possible encoding issues")
+
+            # Check for mythological keywords
+            mythological_keywords = [
+                'myth', 'legend', 'god', 'goddess', 'hero', 'monster', 'quest',
+                'epic', 'saga', 'folklore', 'ancient', 'divine', 'prophecy'
+            ]
+            content_lower = content.lower()
+            keyword_count = sum(1 for keyword in mythological_keywords if keyword in content_lower)
+
+            if keyword_count < 2:
+                issues.append("Low mythological keyword density - may not be mythological content")
+
         return issues
