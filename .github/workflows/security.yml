@@ -36,7 +36,7 @@ jobs:
           output: 'trivy-${{ matrix.component }}.sarif'
 
       - name: Upload Trivy scan results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: 'trivy-${{ matrix.component }}.sarif'
@@ -119,10 +119,10 @@ jobs:
           queries: security-extended,security-and-quality
 
       - name: Autobuild
-        uses: github/codeql-action/autobuild@v3
+        uses: github/codeql-action/autobuild@v4
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v4
         with:
           category: "/language:${{ matrix.language }}"
 
@@ -144,7 +144,7 @@ jobs:
           output_file_path: checkov-terraform.sarif
 
       - name: Upload Checkov scan results
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: checkov-terraform.sarif
@@ -207,7 +207,7 @@ jobs:
           npx license-checker --json --out ../node-licenses.json
 
       - name: Upload license reports
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: license-reports
           path: |
@@ -258,7 +258,7 @@ jobs:
 
       - name: Notify security team
         if: failure() && github.ref == 'refs/heads/main'
-        uses: 8398a7/action-slack@v3
+        uses: 8398a7/action-slack@v4
         with:
           status: failure
           channel: '#security-alerts'
