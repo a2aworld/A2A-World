@@ -6,6 +6,8 @@ Provides agent registration, capability matching, and dynamic scaling support.
 """
 
 import asyncio
+asyncio.coroutine = lambda f: f  # Compatibility for Python 3.11+
+
 import json
 import logging
 from typing import Any, Dict, List, Optional, Set

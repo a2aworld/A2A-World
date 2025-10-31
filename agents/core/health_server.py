@@ -10,7 +10,7 @@ import asyncio
 import logging
 import json
 from datetime import datetime
-from typing import Dict, Any, Optional, Callable
+from typing import Dict, Any, Optional, Callable, List
 from aiohttp import web, ClientSession
 import aiohttp_cors
 

@@ -13,7 +13,8 @@ from datetime import datetime
 from pathlib import Path
 import asyncio
 
-from pydantic import BaseSettings, Field, validator
+from pydantic_settings import BaseSettings
+from pydantic import Field, validator
 import yaml
 
 from agents.core.registry import ConsulRegistry
