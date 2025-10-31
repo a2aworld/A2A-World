@@ -169,7 +169,7 @@ jobs:
         with:
           path: ./
           base: main
-          head: HEAD
+         # head: HEAD
           extra_args: --debug --only-verified
 
   # License Compliance
