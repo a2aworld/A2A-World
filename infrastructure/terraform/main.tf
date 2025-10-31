@@ -87,6 +87,10 @@ resource "digitalocean_spaces_bucket" "storage" {
       noncurrent_days = 30
     }
   }
+
+  versioning {
+    enabled = true
+  }
 }
 
 # Spaces for Terraform State
