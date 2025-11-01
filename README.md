@@ -53,7 +53,7 @@ The A2A World Platform is a comprehensive multi-agent system designed to identif
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/your-org/A2A-World.git
+git clone https://github.com/a2aworld/A2A-World.git
 cd A2A-World
 ```
 
