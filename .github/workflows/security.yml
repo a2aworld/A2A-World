@@ -3,6 +3,11 @@
 
 name: Security Scan
 
+permissions:
+  contents: read
+  security-events: write
+  checks: write
+
 on:
   schedule:
     - cron: '0 2 * * 1' # Weekly on Mondays at 2 AM
